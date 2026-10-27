@@ -19,12 +19,19 @@ Every visitor gets a separate circle and separate invoices, so judges never see 
 
 **Real sats (mainnet):** create a free [Blink](https://dev.blink.sv/api/auth) account and, at dashboard.blink.sv → API Keys, a key with only **Read** and **Receive** (CircleSats refuses a key with Write). Add it to the Vercel project as the sensitive variable `BLINK_RECEIVE_API_KEY` (Production and Preview) and redeploy. `/api/practice/info` then reports `rails.mainnet.available: true`. Set `PRACTICE_MAINNET=0` to turn real-sat invoices off. Blink is hosted, so this rail does not depend on your PC being online.
 
-**Test coins (Mutinynet):**
+**Test coins (Mutinynet), always online (recommended):** use a hosted LND node on Mutinynet, for example on [Voltage](https://voltage.cloud)'s free Essentials plan, so the treasurer does not depend on your PC.
 
-- In the Vercel project's environment variables, set `NWC_RECEIVER_CONNECTION_SECRET` to the treasurer node's **receive-only** NWC connection (`make_invoice` and `lookup_invoice`, no `pay_invoice`; startup refuses spending permission), plus `PAYMENT_ENVIRONMENT=signet` and `LNBITS_NETWORK=signet`. Redeploy. `/api/practice/info` then reports `available: true`. Set `PRACTICE_LIGHTNING=0` to turn real payments off.
-- Keep the treasurer node (your Mutinynet Alby Hub) online for the whole judging period, with enough **incoming** capacity: each payment needs 100 sats, so 5,000 sats covers about 50.
+1. Create a Mutinynet LND node and finish Voltage's setup prompts.
+2. Give it incoming capacity: at [faucet.mutinynet.com](https://faucet.mutinynet.com), open a Lightning channel **to** the node (paste its `pubkey@host:9735` connection address). 100,000 sats covers about 1,000 payments. Mutinynet blocks are about 30 seconds, so the channel is usable within minutes.
+3. Copy the node's REST API address (`https://…`) and its **invoice** macaroon in hex. Never use the admin macaroon: CircleSats reads the macaroon's permissions and refuses one that could pay, send coins or manage the node.
+4. In the Vercel project's environment variables, add `LND_REST_URL` and the sensitive `LND_INVOICE_MACAROON` (Production and Preview), then redeploy. If the node asks for an API IP allowlist, allow all addresses: Vercel has no fixed address, and the invoice macaroon cannot spend.
+
+**Test coins with your own Alby Hub (alternative):** set `NWC_RECEIVER_CONNECTION_SECRET` to the Hub's **receive-only** NWC connection (`make_invoice` and `lookup_invoice`, no `pay_invoice`; startup refuses spending permission), plus `PAYMENT_ENVIRONMENT=signet` and `LNBITS_NETWORK=signet`. The Hub must stay online with incoming capacity (each payment needs 100 sats). When both are set, the LND node is used.
+
+For either: `/api/practice/info` then reports `rails.signet.available: true`. Set `PRACTICE_LIGHTNING=0` to turn test-coin payments off. If the node is unreachable, judges automatically get the labelled Alby sandbox or simulation instead.
+
 - The faucet allows about 60 withdraw requests and 1,000,000 sats per server address per day.
-- The `/api/practice` functions pay only pending, unexpired 100-sat invoices that the treasurer node itself issued, so they cannot be used to send faucet coins anywhere else. They hold no spending key.
+- The `/api/practice` functions ask the faucet to pay only pending, unexpired 100-sat invoices that the treasurer node itself issued, so they cannot be used to send faucet coins anywhere else. They hold no spending key.
 - Test locally before deploying: with your private `.env.mutinynet` in place, run `npm run build:vercel` then `npm run preview:vercel` and open http://127.0.0.1:3200. The local preview loads the same receiver connection and calls the faucet from your own internet address.
 
 ### How CircleSats meets the hackathon requirements

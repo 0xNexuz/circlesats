@@ -34,6 +34,10 @@ for (const file of files) {
   if (/NWC_RECEIVER_CONNECTION_SECRET\s*=\s*nostr\+walletconnect:\/\/[^\s#]*(?:secret=|[?&]secret=)/i.test(content)) {
     throw new Error(`Possible receiver credential appears in a Git candidate: ${file}`);
   }
+  // LND macaroons start with 0x02 0x01 0x03 "lnd" (hex 0201036c6e64, base64 AgEDbG5k).
+  if (/0201036c6e64[0-9a-f]{60,}|AgEDbG5k[A-Za-z0-9+/_-]{40,}/i.test(content)) {
+    throw new Error(`Possible LND macaroon appears in a Git candidate: ${file}`);
+  }
 }
 console.log(JSON.stringify({ status: 'passed', gitCandidateFiles: files.length, textFilesScanned: scanned,
   sandboxWalletConnectionsChecked: sandboxSecrets.length, mutinynetWalletConnectionsChecked: realSecrets.length }));

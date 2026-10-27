@@ -40,15 +40,15 @@ Then simulate the other three members, approve, and watch the payout rotate thro
 flowchart LR
   J[Judge's browser] -- invoice / status --> F[Vercel functions /api/practice]
   F -- Read + Receive key --> B[Treasurer Blink wallet · mainnet]
-  F -- receive-only NWC over Nostr --> H[Treasurer Alby Hub · Mutinynet]
+  F -- invoice-only key or receive-only NWC --> H[Treasurer Mutinynet node]
   F -- LNURL-withdraw --> M[Mutinynet faucet node]
   M == Lightning payment ==> H
   W[Judge's own wallet] == Lightning payment ==> B
   J -. optional NWC .-> W
 ```
 
-- **Bitcoin / Lightning:** BOLT11 invoices on mainnet (Blink) and Mutinynet (Alby Hub); invoices are decoded and checked for network, amount, hash and expiry before they are stored.
-- **Nostr:** Nostr Wallet Connect (NIP-47) links the app to the treasurer's node for receiving, and lets members pay from their own wallet inside the app.
+- **Bitcoin / Lightning:** BOLT11 invoices on mainnet (Blink) and Mutinynet (a hosted LND node or Alby Hub); invoices are decoded and checked for network, amount, hash and expiry before they are stored.
+- **Nostr:** Nostr Wallet Connect (NIP-47) lets members pay from their own wallet inside the app, and can link the app to a treasurer node such as Alby Hub for receiving.
 - **Security by design:** receive-only credentials (spending permission is refused at startup), exact invoice/hash/amount matching, unique payment hashes, CSRF-protected sessions, strict Content Security Policy, and no secrets in the browser.
 
 ## 5. What is proven today
