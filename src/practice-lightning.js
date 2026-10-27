@@ -4,8 +4,10 @@
 // - mainnet: a real Bitcoin invoice from the treasurer's Blink wallet (API key
 //   with Read + Receive only). The visitor pays it from their own Lightning
 //   wallet; CircleSats only checks it.
-// - signet: a Mutinynet invoice from the treasurer's receive-only NWC node,
-//   paid on request by the public Mutinynet faucet's node through its
+// - signet: a Mutinynet invoice from the treasurer's always-online LND node
+//   (for example a free hosted Voltage node, invoice macaroon only) or, when
+//   that is not configured, from a receive-only NWC node such as Alby Hub. The
+//   public Mutinynet faucet's node pays it on request through its
 //   LNURL-withdraw endpoint (test coins with no market value).
 // A payment counts only after the treasurer wallet itself reports the exact
 // invoice, hash and amount as settled; preimages are checked against the hash.
@@ -15,6 +17,7 @@
 // still pending, so it cannot be used to spend faucet coins on anything else.
 import { createNwcReceiver } from './nwc-receiver.js';
 import { createBlinkReceiver } from './blink-receiver.js';
+import { createLndReceiver } from './lnd-receiver.js';
 import { LightningError } from './lnbits.js';
 import { invoiceNetwork, validateLightningInvoice } from './invoice-validation.js';
 import { decodeInvoice } from '@getalby/lightning-tools/bolt11';
@@ -35,9 +38,11 @@ function withTimeout(promise, ms, message) {
     .finally(() => clearTimeout(timer));
 }
 
-export function createPracticeService({ env = process.env, connectReceiver = null, connectMainnet = null, fetchImpl = globalThis.fetch,
+export function createPracticeService({ env = process.env, connectReceiver = null, connectMainnet = null, connectLnd = null, fetchImpl = globalThis.fetch,
   faucetUrl = MUTINYNET_FAUCET_URL, connectTimeoutMs = 12_000, faucetTimeoutMs = 70_000,
   settlePollMs = 1_000, settleAttempts = 15, now = () => Date.now() } = {}) {
+  // A hosted LND node is preferred for test coins because it stays online.
+  const lnd = Boolean(env.LND_REST_URL && env.LND_INVOICE_MACAROON);
   const rails = {
     mainnet: {
       enabled: Boolean(env.BLINK_RECEIVE_API_KEY) && env.PRACTICE_MAINNET !== '0',
@@ -45,10 +50,12 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
       connect: () => (connectMainnet || createBlinkReceiver)({ apiKey: env.BLINK_RECEIVE_API_KEY, fetchImpl, expectedNetwork: 'mainnet' })
     },
     signet: {
-      enabled: Boolean(env.NWC_RECEIVER_CONNECTION_SECRET) && env.PAYMENT_ENVIRONMENT === 'signet' &&
-        env.LNBITS_NETWORK === 'signet' && env.PRACTICE_LIGHTNING !== '0',
+      enabled: env.PRACTICE_LIGHTNING !== '0' && (lnd || (Boolean(env.NWC_RECEIVER_CONNECTION_SECRET) &&
+        env.PAYMENT_ENVIRONMENT === 'signet' && env.LNBITS_NETWORK === 'signet')),
       payer: 'Mutinynet faucet', label: 'Mutinynet Lightning (test coins)',
-      connect: () => (connectReceiver || createNwcReceiver)({ connectionSecret: env.NWC_RECEIVER_CONNECTION_SECRET, expectedNetwork: 'signet' })
+      connect: () => lnd
+        ? (connectLnd || createLndReceiver)({ restUrl: env.LND_REST_URL, macaroon: env.LND_INVOICE_MACAROON, fetchImpl, expectedNetwork: 'signet' })
+        : (connectReceiver || createNwcReceiver)({ connectionSecret: env.NWC_RECEIVER_CONNECTION_SECRET, expectedNetwork: 'signet' })
     }
   };
   const faucet = faucetUrl.replace(/\/$/, '');
@@ -63,7 +70,7 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
     catch (error) {
       connections[network].then(client => client?.close?.(), () => {});
       delete connections[network];
-      if (!(error instanceof PracticeError)) console.warn(JSON.stringify({ practice: 'receiver-unavailable', network, reason: String(error?.message || '').slice(0, 200) }));
+      if (!(error instanceof PracticeError)) console.warn(JSON.stringify({ practice: 'receiver-unavailable', network, reason: String(error?.message || '').replace(/[0-9a-f]{80,}/gi, '[redacted]').slice(0, 200) }));
       throw error instanceof PracticeError ? error : new PracticeError('The treasurer wallet is unavailable.', 503);
     }
   }
@@ -253,7 +260,7 @@ export function createPracticeHandler(service) {
       return send(res, 404, { error: 'Not found.' });
     } catch (error) {
       const known = error instanceof PracticeError || error instanceof LightningError;
-      if (!known) console.error('Practice payment request failed', { name: error?.name, message: String(error?.message || '').replace(/nostr\+walletconnect:\/\/\S+/gi, '[redacted]').slice(0, 200) });
+      if (!known) console.error('Practice payment request failed', { name: error?.name, message: String(error?.message || '').replace(/nostr\+walletconnect:\/\/\S+/gi, '[redacted]').replace(/[0-9a-f]{80,}/gi, '[redacted]').slice(0, 200) });
       return send(res, known ? (error.status || 502) : 500, { error: known ? error.message : 'Unable to complete the request.' });
     }
   };

@@ -2,6 +2,13 @@
 
 Updated 27 October 2026. The user approved implementing, hardening, and publishing the CircleSats hackathon MVP through MAG Development OS V2. The public repository is [0xNexuz/circlesats](https://github.com/0xNexuz/circlesats) on `master`. The Vercel project in the `xreyys-projects` Hobby team serves a **browser-only simulated demo** at [circlesats-two.vercel.app](https://circlesats-two.vercel.app/); it contains no shared ledger, member sign-in, Lightning receiver, or wallet secrets. The full Node app and private Mutinynet checkpoint remain local. After further changes, verify the deployed commit before calling the release current.
 
+## Always-online test-coin node — 27 October 2026 (branch `claude/voltage-test-node`)
+
+- The user cannot keep their PC (and its Mutinynet Alby Hub) on during judging, and chose a free hosted test node (Voltage) over a house wallet paying real sats.
+- `src/lnd-receiver.js`: receive-only LND REST adapter. It decodes the macaroon (binary v2, identifier v3 + MacaroonId protobuf, as `lncli printmacaroon`) before any request and refuses anything beyond reads plus `invoices:write`/`address:write`; creates `lntbs` invoices (`POST /v1/invoices`, `private: true`), checks `GET /v1/invoice/{hash}` for exact request, hash and amount, and returns the preimage only for SETTLED invoices after SHA-256 verification.
+- `practice-lightning.js`: the signet rail uses `LND_REST_URL` + `LND_INVOICE_MACAROON` when set (preferred over the Alby Hub NWC connection), otherwise the NWC connection as before. The secret scanner now also blocks LND macaroons.
+- Verification: 49/49 tests with a fake LND REST node and real-format macaroons. **Not yet live:** needs the user's Voltage node, a faucet channel to it, and the two Vercel variables.
+
 ## Judge Lightning sandbox — 27 October 2026 (branch `claude/judge-lightning-sandbox`)
 
 - Goal from the user: the easiest in-app Lightning transaction that anyone, including judges, can test without disrupting others; UI design unchanged.
