@@ -1,0 +1,33 @@
+{
+  "name": "circlesats",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:vercel": "npm run build && node scripts/build-vercel.mjs",
+    "preview:vercel": "node scripts/preview-vercel.mjs",
+    "prestart": "npm run build",
+    "start": "node --env-file-if-exists=.env scripts/start.js",
+    "start:sandbox": "node --use-system-ca --env-file=.env.sandbox scripts/start.js",
+    "start:mutinynet": "node --use-system-ca --env-file=.env.mutinynet scripts/start.js",
+    "test": "node --test",
+    "test:sandbox": "node scripts/alby-sandbox-smoke.mjs",
+    "configure:sandbox": "node scripts/configure-alby-sandbox.mjs",
+    "check:ledger": "node scripts/check-ledger.mjs",
+    "provision:members": "node --env-file-if-exists=.env scripts/provision-members.mjs",
+    "check:secrets": "node scripts/check-public-secrets.mjs",
+    "check:mutinynet-wallets": "node --env-file=.env.mutinynet --env-file-if-exists=.env.mutinynet-payer scripts/mutinynet-readiness.mjs",
+    "prepare:mutinynet-invoice": "node --env-file=.env.mutinynet scripts/prepare-mutinynet-invoice.mjs",
+    "verify:mutinynet-payment": "node --env-file=.env.mutinynet scripts/verify-mutinynet-payment.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@getalby/lightning-tools": "9.0.2",
+    "@getalby/sdk": "^8.1.1",
+    "gsap": "^3.15.0",
+    "qrcode": "^1.5.4"
+  }
+}

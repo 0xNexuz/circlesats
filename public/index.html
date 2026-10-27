@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#12352d">
+  <meta name="description" content="CircleSats makes every Lightning contribution clear to your savings circle.">
+  <title>CircleSats — Save together, see every sat</title>
+  <script src="/preloader-bootstrap.js"></script>
+  <style>
+    html.preload-active,html.preload-active body{overflow:hidden}
+    html.preload-active:not(.preload-exiting) body>:not(#preloader):not(script){visibility:hidden}
+    html.preload-active #preloader{display:block;position:fixed;inset:0;z-index:1000;background:#0b291f}
+  </style>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" as="image" href="/logo.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <script defer src="/preloader.js"></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="preloader" id="preloader" role="status" aria-label="Loading CircleSats">
+    <div class="preloader-grid" aria-hidden="true"></div>
+    <div class="preloader-orbit preloader-orbit-outer" aria-hidden="true"></div>
+    <div class="preloader-orbit preloader-orbit-inner" aria-hidden="true"></div>
+    <div class="preloader-inner">
+      <div class="preloader-topline"><span class="preloader-topline-rule"></span> CIRCLESATS <span class="preloader-topline-index">DAKAR · 2026</span></div>
+      <div class="preloader-center">
+        <div class="preloader-crest" aria-hidden="true">
+          <span class="preloader-point point-top"></span><span class="preloader-point point-right"></span><span class="preloader-point point-bottom"></span><span class="preloader-point point-left"></span>
+          <div class="preloader-mark-wrap"><img class="preloader-mark" src="/logo.svg" alt="" width="112" height="112"></div>
+        </div>
+        <span class="preloader-center-label">FOUR PEOPLE · ONE CLEAR RECORD</span>
+        <div class="preloader-wordmark">circle<span>sats</span><span class="preloader-period">.</span></div>
+        <p class="preloader-tagline">A little from each. More for everyone.</p>
+      </div>
+      <div class="preloader-bottom">
+        <div class="preloader-progress-copy"><span id="preloader-status">Preparing your circle</span><span id="preloader-percent" aria-hidden="true">0%</span></div>
+        <div class="preloader-track" id="preloader-progress" role="progressbar" aria-label="Page readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="preloader-fill" id="preloader-fill"></span></div>
+        <div class="preloader-footnote"><span>BETTER TOGETHER</span><span>LIGHTNING CONTRIBUTIONS / 001</span></div>
+      </div>
+    </div>
+  </div>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#overview" aria-label="CircleSats, back to overview">
+        <img src="/logo.svg" alt="" width="44" height="44">
+        <span>circle<span>sats</span><small>BETTER TOGETHER</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <a href="#overview" class="nav-link active" data-nav="overview">Overview</a>
+        <a href="#wallet-section" class="nav-link" data-nav="wallet-section">My wallet</a>
+        <a href="#members-section" class="nav-link" data-nav="members-section">Members</a>
+        <a href="#cycle-section" class="nav-link" data-nav="cycle-section">The cycle</a>
+        <a href="#how-it-works" class="nav-link" data-nav="how-it-works">How it works</a>
+      </nav>
+      <div class="connection" id="connection" role="status"><span class="connection-dot"></span><span>Checking wallet…</span></div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="overview page-width" id="overview" aria-labelledby="hero-title">
+      <div class="overview-copy">
+        <div class="eyebrow"><span class="eyebrow-line"></span> <span id="hero-group-name">THE DAKAR MARKET CIRCLE</span> <span class="live-label" id="round-mode-label">ROUND</span></div>
+        <h1 id="hero-title">A little from each.<br><em>More for everyone.</em></h1>
+        <p>Keep your savings circle in sync. See every contribution, check the Lightning receipt, and always know where the round stands.</p>
+        <div class="overview-actions"><a class="button button-primary" href="#wallet-section">Make a contribution <span aria-hidden="true">↗</span></a><a class="text-link" href="#cycle-section">Explore the full cycle <span aria-hidden="true">→</span></a></div>
+        <div class="trust-note"><span class="trust-icon" aria-hidden="true">✓</span> <span id="trust-copy">Checking payment mode…</span></div>
+      </div>
+      <div class="overview-visual" aria-label="Round progress">
+        <span class="orbit-dot dot-one" aria-hidden="true"></span><span class="orbit-dot dot-two" aria-hidden="true"></span><span class="orbit-dot dot-three" aria-hidden="true"></span>
+        <div class="round-card">
+          <div class="round-card-top"><span>CURRENT ROUND</span><span class="round-mark"><img src="/logo.svg" alt="" width="31" height="31"></span></div>
+          <p class="round-name" id="round-name">Round 1 · Awa’s turn</p>
+          <div class="donut" id="donut"><div class="donut-inner"><strong id="progress-value">0%</strong><span>complete</span></div></div>
+          <div class="round-card-bottom"><span><b id="paid-count">0</b> of <b id="round-member-count">4</b> members paid</span><span><b id="collected">0</b> sats collected</span></div>
+        </div>
+        <div class="visual-caption"><span class="caption-icon" aria-hidden="true">✳</span> One circle. One clear record.</div>
+      </div>
+    </section>
+
+    <section class="dashboard page-width" aria-labelledby="dashboard-title">
+      <div class="section-intro"><div><p class="section-kicker" id="dashboard-kicker">YOUR SHARED SPACE</p><h2 id="dashboard-title">The circle at a glance<span class="title-dot">.</span></h2></div><p id="dashboard-description">Everything you need for this round, together in one place.</p></div>
+      <div class="stat-row">
+        <div class="stat-card"><span class="stat-icon gold" aria-hidden="true">₿</span><div><span class="stat-label">Contribution amount</span><strong id="contribution-amount">100 <small>sats</small></strong><span class="stat-caption">per member</span></div></div>
+        <div class="stat-card"><span class="stat-icon green" aria-hidden="true">↗</span><div><span class="stat-label">Circle target</span><strong id="round-target">400 <small>sats</small></strong><span class="stat-caption">for this round</span></div></div>
+        <div class="stat-card"><span class="stat-icon blue" aria-hidden="true">◷</span><div><span class="stat-label">Still to come</span><strong id="remaining">400 <small>sats</small></strong><span class="stat-caption" id="remaining-members">4 contributions remaining</span></div></div>
+      </div>
+
+      <section class="surface wallet-card" id="wallet-section" aria-labelledby="wallet-title">
+        <div class="surface-head"><div><p class="section-kicker">YOUR ACCOUNT</p><h3 id="wallet-title">Your wallet, your contribution</h3></div><span class="member-count" id="network-label">DEMO MODE</span></div>
+        <div id="wallet-panel" class="wallet-panel"></div>
+      </section>
+
+      <div class="content-grid">
+        <section class="surface members-card" id="members-section" aria-labelledby="members-title">
+          <div class="surface-head"><div><p class="section-kicker">MEMBER LEDGER</p><h3 id="members-title">Who’s in this round</h3></div><span class="member-count" id="member-count-label">4 MEMBERS</span></div>
+          <p class="surface-description" id="members-description">Sign in with your member access code, then contribute from a demo wallet or a connected Lightning wallet.</p>
+          <div class="member-list" id="members"></div>
+          <div class="ledger-foot"><span class="ledger-foot-icon" aria-hidden="true">◎</span><span id="ledger-copy">Only confirmed contributions count toward the total.</span></div>
+        </section>
+        <section class="surface payment-card" id="payment-section" aria-labelledby="payment-title">
+          <div class="surface-head"><div><p class="section-kicker">YOUR NEXT STEP</p><h3 id="payment-title">Make it count</h3></div><span class="bolt-badge" aria-hidden="true">ϟ</span></div>
+          <div id="payment-panel" class="payment-panel"><div class="payment-empty-symbol" aria-hidden="true">↗</div><h4>Ready when you are.</h4><p>Choose a member from the ledger to get started.</p></div>
+          <p class="custody-note"><span aria-hidden="true">ⓘ</span> In Lightning mode, contributions go to the configured treasurer wallet through LNbits or receive-only NWC. Payout approvals and manual claims are recorded here; real payout execution is not automated.</p>
+        </section>
+      </div>
+    </section>
+
+    <section class="cycle-section page-width" id="cycle-section" aria-labelledby="cycle-title">
+      <div class="section-intro"><div><p class="section-kicker">SAVE · ROTATE · ACCOUNT FOR EVERY SAT</p><h2 id="cycle-title">The savings cycle<span class="title-dot">.</span></h2></div><p id="cycle-intro">See who receives each round, what is still due, and when a payout can move forward.</p></div>
+      <div id="cycle-panel" aria-live="polite"></div>
+    </section>
+
+    <section class="how-section" id="how-it-works" aria-labelledby="how-title"><div class="page-width"><div class="how-head"><p class="section-kicker">SIMPLE BY DESIGN</p><h2 id="how-title">Three steps. Full clarity.</h2><p>Member access, payment, and attribution are shown separately.</p></div><div class="steps"><article class="step"><span class="step-number">01</span><div class="step-icon" aria-hidden="true">◎</div><h3>Choose your path</h3><p>Try a private simulation, or sign in with the access code from your circle organizer.</p></article><article class="step"><span class="step-number">02</span><div class="step-icon" aria-hidden="true">ϟ</div><h3>Choose a wallet</h3><p>Use the built-in simulated wallet, or connect an external wallet when Lightning is configured.</p></article><article class="step"><span class="step-number">03</span><div class="step-icon" aria-hidden="true">✓</div><h3>See the evidence</h3><p>Receipts show whether the payment arrived and whether a signed-in member supplied payment proof.</p></article></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="page-width footer-inner"><a class="footer-brand" href="#overview"><img src="/logo.svg" alt="" width="32" height="32"> circlesats</a><span>Built for circles that move together.</span><span>Hackathon MVP · Test with small amounts only</span></div></footer>
+  <nav class="mobile-nav" aria-label="Mobile navigation"><a href="#overview" class="mobile-link active" data-nav="overview"><span aria-hidden="true">⌂</span>Home</a><a href="#wallet-section" class="mobile-link" data-nav="wallet-section"><span aria-hidden="true">₿</span>Wallet</a><a href="#members-section" class="mobile-link" data-nav="members-section"><span aria-hidden="true">◎</span>Members</a><a href="#cycle-section" class="mobile-link" data-nav="cycle-section"><span aria-hidden="true">↻</span>Cycle</a></nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
