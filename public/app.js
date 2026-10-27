@@ -402,7 +402,10 @@ function render() {
   $('round-mode-label').textContent = state.cycle.status === 'completed' ? 'CYCLE COMPLETE' : state.mode === 'demo' ? `DEMO ROUND ${viewRound.number}` : `ROUND ${viewRound.number}`;
   $('dashboard-kicker').textContent = me?.kind === 'guest-demo' ? 'YOUR PRACTICE SPACE' : 'YOUR SHARED SPACE';
   $('dashboard-description').textContent = me?.kind === 'guest-demo' ? 'A private sample, separate from the circle’s shared records.' : 'Everything you need for this round, together in one place.';
-  $('trust-copy').textContent = state.walletConnected ? 'Payment status checked with the Lightning wallet' : 'Explore the flow with clearly simulated sats';
+  $('trust-copy').textContent = state.walletConnected ? 'Payment status checked with the Lightning wallet'
+    : mainnetPractice() || realPractice() ? 'Your contribution is a real Lightning payment; other members are simulated'
+    : sandboxWallet() ? 'Your contribution uses Alby sandbox test sats; other members are simulated'
+    : 'Explore the flow with clearly simulated sats';
   $('ledger-copy').textContent = me?.kind === 'guest-demo' ? 'Your private sample ledger is temporary and separate from the shared circle.' : state.walletConnected ? 'Only Lightning wallet-confirmed payments count toward the total.' : 'Only completed simulated contributions count toward the demo total.';
   $('members-description').textContent = me?.kind === 'guest-demo' ? 'A private practice round. Try Awa’s contribution, then replay whenever you like.'
     : window.__CIRCLESATS_STATIC_DEMO ? 'Start the guided demo to explore this simulated four-member circle.'

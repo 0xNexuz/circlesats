@@ -2,6 +2,11 @@
 
 Updated 27 October 2026. The user approved implementing, hardening, and publishing the CircleSats hackathon MVP through MAG Development OS V2. The public repository is [0xNexuz/circlesats](https://github.com/0xNexuz/circlesats) on `master`. The Vercel project in the `xreyys-projects` Hobby team serves a **browser-only simulated demo** at [circlesats-two.vercel.app](https://circlesats-two.vercel.app/); it contains no shared ledger, member sign-in, Lightning receiver, or wallet secrets. The full Node app and private Mutinynet checkpoint remain local. After further changes, verify the deployed commit before calling the release current.
 
+## Presentable README — 27 October 2026 (branch `claude/readme`)
+
+- README rebuilt for judges: logo, links, badges, app screenshots (`docs/images/`, captured from the built site with stand-in payment services; no payment data shown), the 27 October payment evidence with the operator's two screenshots (`docs/evidence/`), a one-line preimage check, requirements, payment-mode table, and collapsible operator and Node-app sections. Stale "no real payment yet" statements removed.
+- The hero's trust line now says when the visitor's contribution is a real Lightning payment (it said "clearly simulated sats" even on the Mutinynet and mainnet paths). Copy only; layout unchanged.
+
 ## Offline fallback and Devpost text — 27 October 2026 (branch `claude/offline-fallback`)
 
 - While the treasurer node is unreachable (the user's PC is off), the first check per warm function now waits at most 8 seconds (was 12) and the rail then reports unavailable at once for 60 seconds, so judges fall back to the labelled sandbox quickly. A connection that completes after its timeout is closed. 50/50 tests.
