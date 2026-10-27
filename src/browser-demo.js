@@ -1,12 +1,14 @@
 import { createStore } from './store-browser.js';
 import { createSandboxProvisioner } from './sandbox-lightning.js';
-import { claimGuestSats, createGuestInvoice, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
+import { PRACTICE_PROVIDERS, claimGuestSats, createGuestInvoice, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
+import { createMutinynetOpener } from './practice-client.js';
 
 // Vercel hosts only the guided demo. This facade keeps the same UI and cycle
 // engine running in one browser tab without server secrets or shared state.
-// A visitor's demo wallet is a private Alby sandbox wallet pair created in this
-// tab (test sats, real NWC invoices); if the sandbox is unreachable the wallet
-// stays simulated exactly as before.
+// A visitor's demo wallet prefers real Mutinynet Lightning payments (invoices
+// from the circle treasurer node, paid by the Mutinynet faucet through this
+// site's /api/practice functions), then a private Alby sandbox wallet pair
+// created in this tab (test sats), then the original simulation.
 window.__CIRCLESATS_STATIC_DEMO = true;
 const seed = createStore();
 let session = null;
@@ -19,17 +21,23 @@ async function openSandboxPair() {
   }
   return provisioner();
 }
+const openMutinynet = createMutinynetOpener({ fetchImpl: networkFetch });
+async function openPracticeWallet(options) {
+  try { return await openMutinynet(options); }
+  catch { return openSandboxPair(); }
+}
 const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
 });
 const failed = (message, status = 409) => json({ error: message }, status);
 const publicRecord = (record, viewerId) => ({
   id: record.id, groupId: record.groupId, cycleId: record.cycleId, roundId: record.roundId,
-  memberId: record.memberId, amountSats: record.amountSats, provider: record.provider === 'alby-sandbox' ? 'alby-sandbox' : 'demo',
-  environment: record.provider === 'alby-sandbox' ? 'alby-sandbox' : 'simulated', status: record.status, createdAt: record.createdAt,
+  memberId: record.memberId, amountSats: record.amountSats, provider: PRACTICE_PROVIDERS.has(record.provider) ? record.provider : 'demo',
+  environment: PRACTICE_PROVIDERS.has(record.provider) ? record.provider : 'simulated', status: record.status, createdAt: record.createdAt,
   expiresAt: record.expiresAt, paidAt: record.paidAt || null,
   paymentHash: record.status === 'paid' && viewerId ? record.paymentHash : null,
   paymentRequest: record.status === 'pending' && viewerId === record.memberId ? record.paymentRequest : null,
+  preimage: record.status === 'paid' && viewerId === record.memberId ? record.proofPreimage ?? null : null,
   attribution: record.attribution || 'unverified'
 });
 function randomHex(bytes) {
@@ -77,7 +85,7 @@ window.fetch = async (resource, options = {}) => {
       if (session.walletOpening) return failed('Your wallet is already being created.');
       session.walletOpening = true;
       try {
-        const { pair, wallet, created } = await openGuestWallet(ledger, actor, openSandboxPair);
+        const { pair, wallet, created } = await openGuestWallet(ledger, actor, openPracticeWallet);
         if (created) { session.sandbox?.close(); session.sandbox = pair; }
         return json({ wallet }, 201);
       } finally { session.walletOpening = false; }
@@ -89,7 +97,7 @@ window.fetch = async (resource, options = {}) => {
     if (path === '/api/wallet/pay-demo') {
       const record = ledger.latestFor(actor);
       if (!record || record.status !== 'pending') return failed('Create a pending contribution first.');
-      if (record.provider === 'alby-sandbox') return json({ record: publicRecord(await payGuestInvoice(ledger, session.sandbox || null, actor), actor) });
+      if (PRACTICE_PROVIDERS.has(record.provider)) return json({ record: publicRecord(await payGuestInvoice(ledger, session.sandbox || null, actor), actor) });
       const paid = await ledger.payDemo(actor, record.id, ledger.group().amountSats);
       return paid ? json({ record: publicRecord(paid, actor) }) : failed('Create a wallet and claim enough demo sats first.');
     }

@@ -11,10 +11,14 @@ let entryMode = 'choose';
 
 // A guest's demo wallet may be a private Alby sandbox wallet (real NWC invoices,
 // test sats). Copy must then say so instead of calling payments simulated.
-const sandboxWallet = () => me?.wallet?.kind === 'alby-sandbox';
+// Practice wallets: 'mutinynet' (real Lightning payments on the Mutinynet test
+// network, paid by its faucet) or 'alby-sandbox' (wallet-to-wallet test sats).
+const practiceKind = () => ['mutinynet', 'alby-sandbox'].includes(me?.wallet?.kind) ? me.wallet.kind : null;
+const sandboxWallet = () => practiceKind() !== null;
+const realPractice = () => practiceKind() === 'mutinynet';
 
 function paymentLabel() {
-  if (state.mode === 'demo') return sandboxWallet() ? 'ALBY SANDBOX · TEST SATS' : 'SIMULATED SATS';
+  if (state.mode === 'demo') return realPractice() ? 'MUTINYNET LIGHTNING · TEST COINS' : sandboxWallet() ? 'ALBY SANDBOX · TEST SATS' : 'SIMULATED SATS';
   if (state.environment === 'alby-sandbox') return 'ALBY SANDBOX · TEST SATS';
   return `${state.environment.toUpperCase()} · ${state.network.toUpperCase()}`;
 }
@@ -63,7 +67,9 @@ function scrollToSection(id) {
 function organizerGuide() {
   const guide = document.createElement('details'); guide.className = 'organizer-guide';
   if (window.__CIRCLESATS_STATIC_DEMO) {
-    guide.innerHTML = sandboxWallet()
+    guide.innerHTML = realPractice()
+      ? '<summary>About this public demo <span aria-hidden="true">↗</span></summary><div class="organizer-guide-body"><p>This preview runs a private practice circle in your browser. Your contribution is a real Lightning payment on Mutinynet, a public Bitcoin test network: the invoice comes from the circle treasurer’s node and the Mutinynet faucet’s node pays it over a real Lightning channel. The coins are test coins with no market value. Your receipt shows the payment hash and preimage, so you can check that SHA-256(preimage) equals the hash. Other members’ payments, approvals, and payouts are simulated. Your demo resets when you reload the page.</p></div>'
+      : sandboxWallet()
       ? '<summary>About this public demo <span aria-hidden="true">↗</span></summary><div class="organizer-guide-body"><p>This preview runs a private practice circle in your browser. Your demo wallet is a private Alby Developer Sandbox wallet: your contribution is a real Lightning invoice paid over Nostr Wallet Connect with test sats that have no value. Other members’ payments, approvals, and payouts are simulated. Your demo resets when you reload the page.</p></div>'
       : '<summary>About this public demo <span aria-hidden="true">↗</span></summary><div class="organizer-guide-body"><p>This preview runs a private simulation in your browser. Sats, receipts, approvals, and payouts here are simulated. Your demo resets when you reload the page. Member access and Lightning receiving require the separately hosted Node app.</p></div>';
     return guide;
@@ -139,7 +145,9 @@ function renderWallet() {
   const heading = document.createElement('p'); heading.className = 'wallet-greeting'; heading.textContent = guest ? `Your private demo · ${name}` : `Signed in as ${name}`;
   panel.append(heading);
   if (guest) {
-    const guestNote = document.createElement('p'); guestNote.className = 'guest-note'; guestNote.textContent = sandboxWallet()
+    const guestNote = document.createElement('p'); guestNote.className = 'guest-note'; guestNote.textContent = realPractice()
+      ? 'This is an isolated practice circle with its own invoices. It does not verify your identity or change the circle’s shared ledger.'
+      : sandboxWallet()
       ? 'This is an isolated practice circle with its own sandbox wallets. It does not verify your identity or change the circle’s shared ledger.'
       : 'This is an isolated simulation. It does not verify your identity or change the circle’s shared ledger.'; panel.append(guestNote);
   }
@@ -153,8 +161,10 @@ function renderWallet() {
       }
       panel.append(progress);
     }
-    const balance = document.createElement('strong'); balance.className = 'wallet-balance'; balance.textContent = me.wallet ? `${me.wallet.balanceSats} ${sandboxWallet() ? 'test sats' : 'demo sats'}` : 'No demo wallet yet'; panel.append(balance);
-    const note = document.createElement('p'); note.textContent = sandboxWallet()
+    const balance = document.createElement('strong'); balance.className = 'wallet-balance'; balance.textContent = me.wallet ? `${me.wallet.balanceSats} ${realPractice() ? 'test sats to pay' : sandboxWallet() ? 'test sats' : 'demo sats'}` : 'No demo wallet yet'; panel.append(balance);
+    const note = document.createElement('p'); note.textContent = realPractice()
+      ? 'Your demo wallet pays through the public Mutinynet faucet: each payment is a real Lightning payment from the faucet’s node to this circle’s treasurer node on the Mutinynet test network. Test coins only; they have no market value.'
+      : sandboxWallet()
       ? 'Your demo wallet is a private Alby Developer Sandbox wallet. Contributions are real Lightning invoices paid over Nostr Wallet Connect, using test sats with no real value.'
       : 'Demo sats are simulated and cannot be sent to a real Lightning wallet.'; panel.append(note);
     const externalNote = document.createElement('p'); externalNote.className = 'wallet-hint'; externalNote.textContent = 'To use an external testnet wallet, the organizer first needs to connect a Lightning receiver. See the setup guide below.'; panel.append(externalNote);
@@ -428,8 +438,11 @@ function renderPayment() {
   panel.append(title, summary);
   if (record?.status === 'paid') {
     const receipt = document.createElement('div'); receipt.className = 'receipt';
-    if (record.provider === 'alby-sandbox') {
-      receipt.textContent = `Round ${state.round?.number || state.cycle.rounds.length} · ${record.amountSats} sats · Alby sandbox Lightning · test sats · Confirmed ${new Date(record.paidAt).toLocaleString()} · Paid from your sandbox wallet over NWC; receiving wallet confirmed and preimage verified; identity not verified${record.paymentHash ? ` · Payment hash: ${record.paymentHash}` : ''}`;
+    if (record.provider === 'mutinynet' || record.provider === 'alby-sandbox') {
+      const proof = `${record.paymentHash ? ` · Payment hash: ${record.paymentHash}` : ''}${record.preimage ? ` · Preimage: ${record.preimage}` : ''}`;
+      receipt.textContent = record.provider === 'mutinynet'
+        ? `Round ${state.round?.number || state.cycle.rounds.length} · ${record.amountSats} sats · Mutinynet Lightning · test coins · Confirmed ${new Date(record.paidAt).toLocaleString()} · Paid by the Mutinynet faucet node over Lightning; the treasurer node confirmed settlement and the preimage was verified; payer identity not verified${proof}`
+        : `Round ${state.round?.number || state.cycle.rounds.length} · ${record.amountSats} sats · Alby sandbox Lightning · test sats · Confirmed ${new Date(record.paidAt).toLocaleString()} · Paid from your sandbox wallet over NWC; receiving wallet confirmed and preimage verified; identity not verified${proof}`;
       panel.append(receipt); return;
     }
     const attribution = record.attribution === 'member-proof' ? 'Payment proof linked to the signed-in member account' : record.attribution === 'demo-wallet' ? me?.kind === 'guest-demo' ? 'Simulated guest payment; identity not verified' : 'Paid from this member’s simulated wallet' : record.attribution === 'demo-facilitator' ? 'Recorded by the demo facilitator; no wallet payment or identity check' : 'Payment received; payer identity unverified';
@@ -447,13 +460,15 @@ function renderPayment() {
   }
   if (record?.status === 'pending') {
     if (state.mode === 'demo') {
-      const lightningPractice = record.provider === 'alby-sandbox';
-      const note = document.createElement('p'); note.textContent = lightningPractice
+      const lightningPractice = record.provider === 'alby-sandbox' || record.provider === 'mutinynet';
+      const note = document.createElement('p'); note.textContent = record.provider === 'mutinynet'
+        ? `Pay this ${state.group.amountSats}-sat Lightning invoice. The Mutinynet faucet’s node pays it over the Mutinynet Lightning network to the circle treasurer’s node. This can take up to a minute. Test coins only.`
+        : lightningPractice
         ? `Pay this ${state.group.amountSats}-sat Lightning invoice from your sandbox wallet. Test sats only; no real Bitcoin moves.`
         : `Pay ${state.group.amountSats} simulated sats from your built-in wallet. This is a local demonstration, not a Lightning transaction.`; panel.append(note);
       const controls = document.createElement('div'); controls.className = 'actions';
       controls.append(action('Pay with demo wallet', async () => { await mutate('/api/wallet/pay-demo'); await refresh(true);
-        toast(lightningPractice ? 'Lightning payment confirmed by the receiving wallet.' : 'Demo contribution recorded.'); }, false, 'Recording payment…'));
+        toast(lightningPractice ? 'Lightning payment confirmed by the receiving wallet.' : 'Demo contribution recorded.'); }, false, lightningPractice ? 'Paying over Lightning…' : 'Recording payment…'));
       panel.append(controls); return;
     }
     if (Date.now() >= Date.parse(record.expiresAt)) {
@@ -482,6 +497,7 @@ function renderPayment() {
     return;
   }
   const explanation = document.createElement('p'); explanation.textContent = state.walletConnected ? 'Create a unique Lightning invoice for your member account.'
+    : realPractice() ? 'Create a Mutinynet Lightning invoice from the circle treasurer’s node for your contribution.'
     : sandboxWallet() ? 'Create a Lightning invoice for your contribution, to pay from your sandbox wallet.' : 'Create a simulated contribution for your demo wallet.';
   const actions = document.createElement('div'); actions.className = 'actions';
   const create = document.createElement('button'); create.className = 'action'; create.textContent = state.mode === 'demo' ? 'Create demo contribution' : `Create ${state.group.amountSats} sat invoice`;

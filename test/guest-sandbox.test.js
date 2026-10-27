@@ -8,7 +8,7 @@ import { createApp } from '../src/app.js';
 import { createAuth } from '../src/auth.js';
 import { createStore } from '../src/store.js';
 import { createSandboxProvisioner, SandboxError } from '../src/sandbox-lightning.js';
-import { fakeSandbox } from './fake-sandbox.js';
+import { fakeSandbox } from './support/fake-sandbox.js';
 
 const fast = { pollIntervalMs: 1, pollAttempts: 5 };
 const sha = hex => createHash('sha256').update(Buffer.from(hex, 'hex')).digest('hex');

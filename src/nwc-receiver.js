@@ -96,7 +96,7 @@ export async function createNwcReceiver({ connectionSecret, expectedNetwork, all
           preimageVerified = true;
         }
         return { settled: true, checkingId: record.checkingId, paymentHash: record.paymentHash,
-          amountSats: record.amountSats, preimageVerified,
+          amountSats: record.amountSats, preimageVerified, preimage: preimageVerified ? tx.preimage.toLowerCase() : null,
           settledAt: Number.isSafeInteger(tx.settled_at) ? new Date(tx.settled_at * 1000).toISOString() : null };
       },
       close() { client.close(); }

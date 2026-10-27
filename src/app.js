@@ -6,7 +6,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import QRCode from 'qrcode';
 import { LightningError } from './lnbits.js';
 import { validateSignetInvoice } from './invoice-validation.js';
-import { claimGuestSats, createGuestInvoice, isSandboxError, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
+import { PRACTICE_PROVIDERS, claimGuestSats, createGuestInvoice, isSandboxError, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
 
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
 const securityHeaders = {
@@ -54,6 +54,7 @@ function publicRecord(record, viewerId = null) {
     paidAt: record.paidAt ?? null,
     paymentHash: record.status === 'paid' && viewerId ? record.paymentHash : null,
     paymentRequest: record.status === 'pending' && viewerId === record.memberId ? record.paymentRequest : null,
+    preimage: record.status === 'paid' && viewerId === record.memberId ? record.proofPreimage ?? null : null,
     attribution: record.attribution || 'unverified'
   };
 }
@@ -248,7 +249,7 @@ export function createApp({ store, lightning, auth, publicDir, paymentEnvironmen
         const ledger = activeStore(req);
         const record = ledger.latestFor(memberId);
         if (!record || record.status !== 'pending') return send(res, 409, { error: 'Create a pending contribution first.' });
-        if (current.kind === 'guest-demo' && record.provider === 'alby-sandbox') {
+        if (current.kind === 'guest-demo' && PRACTICE_PROVIDERS.has(record.provider)) {
           return send(res, 200, { record: publicRecord(await payGuestInvoice(ledger, current.sandbox || null, memberId), memberId) });
         }
         const paid = await ledger.payDemo(memberId, record.id, ledger.group().amountSats);

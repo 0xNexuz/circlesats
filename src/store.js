@@ -148,7 +148,7 @@ export function createStore(file = null, { initialGroup = GROUP } = {}) {
     async syncWallet(memberId, { balanceSats, kind } = {}) { return mutate(() => {
       const wallet = wallets[memberId]; if (!wallet) return null;
       if (Number.isSafeInteger(balanceSats) && balanceSats >= 0) wallet.balanceSats = balanceSats;
-      if (kind === 'alby-sandbox') wallet.kind = kind;
+      if (['alby-sandbox', 'mutinynet'].includes(kind)) wallet.kind = kind;
       return wallet;
     }); },
     async claimDemo(memberId) { return mutate(() => {
