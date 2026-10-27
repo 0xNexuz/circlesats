@@ -10,7 +10,7 @@ const root = join(process.cwd(), 'vercel-public');
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
 const config = JSON.parse(await readFile('vercel.json', 'utf8'));
 const headers = Object.fromEntries((config.headers?.[0]?.headers || []).map(header => [header.key, header.value]));
-const actions = new Set(['info', 'invoice', 'pay', 'status']);
+const actions = new Set(['info', 'invoice', 'pay', 'status', 'qr']);
 let practice = null;
 
 createServer(async (req, res) => {
@@ -32,6 +32,6 @@ createServer(async (req, res) => {
 }).listen(3200, '127.0.0.1', () => {
   console.log('Vercel preview: http://127.0.0.1:3200');
   console.log(process.env.NWC_RECEIVER_CONNECTION_SECRET && process.env.PAYMENT_ENVIRONMENT === 'signet'
-    ? 'Real Mutinynet practice payments: enabled (receiver from .env.mutinynet).'
+    ? 'Real Mutinynet practice payments: enabled (receiver from .env.mutinynet).' + (process.env.BLINK_RECEIVE_API_KEY ? ' Real-sats (Blink) payments: enabled.' : '')
     : 'Real Mutinynet practice payments: not configured; guests use the Alby sandbox or simulation.');
 });

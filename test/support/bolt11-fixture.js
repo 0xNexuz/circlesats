@@ -1,4 +1,4 @@
-// Test-only builder for checksum-valid Signet (Mutinynet) BOLT11 strings with a
+// Test-only builder for checksum-valid Signet (Mutinynet) or mainnet BOLT11 strings with a
 // chosen payment hash. The signature is all zeros: these are parser fixtures,
 // never payable invoices and never payment evidence.
 const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
@@ -30,8 +30,8 @@ function toWords(bytes) {
 const intWords = (number, length) => Array.from({ length }, (_, i) => Math.floor(number / 32 ** (length - 1 - i)) % 32);
 const tag = (type, words) => [type, ...intWords(words.length, 2), ...words];
 
-export function makeSignetInvoice({ paymentHash, amountSats = 100, timestamp = Math.floor(Date.now() / 1000), expiry = 1800 }) {
-  const hrp = `lntbs${amountSats * 10}n`;
+export function makeSignetInvoice({ paymentHash, amountSats = 100, timestamp = Math.floor(Date.now() / 1000), expiry = 1800, network = 'signet' }) {
+  const hrp = `${network === 'mainnet' ? 'lnbc' : 'lntbs'}${amountSats * 10}n`;
   const data = [
     ...intWords(timestamp, 7),
     ...tag(1, toWords(Buffer.from(paymentHash, 'hex'))),
