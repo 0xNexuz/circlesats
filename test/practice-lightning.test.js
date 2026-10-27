@@ -19,7 +19,8 @@ function service({ mode, env = practiceEnv, treasurer = fakeTreasurer(), ...opti
 
 test('the faucet pays a treasurer invoice and the treasurer node confirms it once', async () => {
   const { practice, faucet } = service();
-  assert.deepEqual(await practice.info(), { available: true, network: 'signet', amountSats: 100, payer: 'Mutinynet faucet' });
+  assert.deepEqual(await practice.info(), { available: true, amountSats: 100, rails: { mainnet: { available: false },
+    signet: { available: true, payer: 'Mutinynet faucet', label: 'Mutinynet Lightning (test coins)' } } });
   const invoice = await practice.createInvoice({ memo: 'Awa' });
   assert.match(invoice.paymentRequest, /^lntbs1000n1/);
   assert.equal(invoice.amountSats, 100);

@@ -1,14 +1,15 @@
 import { createStore } from './store-browser.js';
 import { createSandboxProvisioner } from './sandbox-lightning.js';
-import { PRACTICE_PROVIDERS, claimGuestSats, createGuestInvoice, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
-import { createMutinynetOpener } from './practice-client.js';
+import { PRACTICE_PROVIDERS, claimGuestSats, createGuestInvoice, openGuestWallet, payGuestInvoice, switchGuestPractice } from './guest-sandbox.js';
+import { createPracticeOpener } from './practice-client.js';
 
 // Vercel hosts only the guided demo. This facade keeps the same UI and cycle
 // engine running in one browser tab without server secrets or shared state.
-// A visitor's demo wallet prefers real Mutinynet Lightning payments (invoices
-// from the circle treasurer node, paid by the Mutinynet faucet through this
-// site's /api/practice functions), then a private Alby sandbox wallet pair
-// created in this tab (test sats), then the original simulation.
+// A visitor's demo wallet prefers real Bitcoin Lightning (an invoice from the
+// circle treasurer's wallet that the visitor pays from their own wallet), then
+// Mutinynet test coins (paid by the Mutinynet faucet), both through this site's
+// /api/practice functions, then a private Alby sandbox wallet pair created in
+// this tab (test sats), then the original simulation.
 window.__CIRCLESATS_STATIC_DEMO = true;
 const seed = createStore();
 let session = null;
@@ -21,10 +22,15 @@ async function openSandboxPair() {
   }
   return provisioner();
 }
-const openMutinynet = createMutinynetOpener({ fetchImpl: networkFetch });
+const openPractice = createPracticeOpener({ fetchImpl: networkFetch });
 async function openPracticeWallet(options) {
-  try { return await openMutinynet(options); }
+  try { return await openPractice(options); }
   catch { return openSandboxPair(); }
+}
+// Test coins for visitors without a Lightning wallet: Mutinynet, else sandbox.
+async function openTestCoinWallet(options) {
+  try { return await openPractice({ ...options, networks: ['signet'] }); }
+  catch { return openSandboxPair().catch(() => null); }
 }
 const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
@@ -93,6 +99,13 @@ window.fetch = async (resource, options = {}) => {
     if (path === '/api/wallet/claim-demo') {
       const wallet = await claimGuestSats(ledger, session.sandbox || null, actor);
       return wallet ? json({ wallet }) : failed('Create a demo wallet first, or your one-time claim was used.');
+    }
+    if (path === '/api/demo/use-test-coins') {
+      if (session.sandbox?.environment !== 'mainnet') return failed('Your demo already uses test coins.');
+      const next = await openTestCoinWallet({ amountSats: ledger.group().amountSats });
+      const result = await switchGuestPractice(ledger, session.sandbox, next, actor);
+      if (result.switched) { session.sandbox?.close(); session.sandbox = next; } else next?.close();
+      return json({ record: publicRecord(result.record, actor), switched: result.switched });
     }
     if (path === '/api/wallet/pay-demo') {
       const record = ledger.latestFor(actor);

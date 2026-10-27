@@ -1,15 +1,17 @@
 // Guest-demo wallet actions backed by a private practice wallet.
 //
-// A practice wallet is either a real Mutinynet one (invoices from the circle's
-// treasurer node, paid by the Mutinynet faucet over the Mutinynet Lightning
-// network) or an Alby sandbox pair (wallet-to-wallet NWC payments with test
-// sats). Used by the Node server (guest sessions) and the browser-only Vercel
+// A practice wallet is one of: real Bitcoin mainnet (invoices from the circle
+// treasurer's wallet, paid by the visitor's own Lightning wallet), Mutinynet
+// (invoices from the treasurer's node, paid by the Mutinynet faucet over the
+// Mutinynet Lightning network), or an Alby sandbox pair (wallet-to-wallet NWC
+// payments with test sats). Used by the Node server (guest sessions) and the browser-only Vercel
 // preview. Each function works on one guest's own in-memory store and wallet,
 // so a guest can never affect the shared ledger or another guest. Without a
 // practice wallet, callers keep the original simulated behaviour.
 import { SandboxError } from './sandbox-lightning.js';
 
-export const PRACTICE_PROVIDERS = new Set(['mutinynet', 'alby-sandbox']);
+export const PRACTICE_PROVIDERS = new Set(['mainnet', 'mutinynet', 'alby-sandbox']);
+const ATTRIBUTION = { mainnet: 'own-wallet-lightning-proof', mutinynet: 'faucet-lightning-proof', 'alby-sandbox': 'sandbox-wallet-proof' };
 export const SANDBOX_MAX_CONTRIBUTION_SATS = 5_000;
 const problem = (message, status = 409) => Object.assign(new Error(message), { status });
 const busy = new WeakSet();
@@ -84,10 +86,28 @@ export async function payGuestInvoice(store, pair, memberId) {
   try {
     const result = await pair.pay(record);
     const paid = await store.update(record.id, { status: 'paid', paidAt: result.settledAt, proofPreimage: result.preimage,
-      attribution: record.provider === 'mutinynet' ? 'faucet-lightning-proof' : 'sandbox-wallet-proof' });
+      attribution: ATTRIBUTION[record.provider] });
     try { await store.syncWallet(memberId, { balanceSats: await pair.balanceSats() }); } catch { /* balance refreshes later */ }
     return paid;
   } finally { busy.delete(pair); }
+}
+
+// Moves a guest from paying with their own wallet to a test-coin practice
+// wallet. A real invoice that was paid in the meantime is credited instead.
+export async function switchGuestPractice(store, currentPair, nextPair, memberId) {
+  const record = store.latestFor(memberId);
+  if (record?.status === 'paid') throw problem('This member already contributed.');
+  if (!nextPair || !PRACTICE_PROVIDERS.has(nextPair.environment)) throw problem('Test coins are unavailable right now. Try again later.', 503);
+  if (record?.status === 'pending' && currentPair && currentPair.environment === record.provider) {
+    try { return { record: await payGuestInvoice(store, currentPair, memberId), switched: false }; }
+    catch { /* not paid: continue switching */ }
+  }
+  if (record?.status === 'pending') await store.update(record.id, { status: 'failed' });
+  const allowance = store.walletFor(memberId)?.balanceSats || 0;
+  if (allowance > 0) await nextPair.topUp(allowance);
+  await store.syncWallet(memberId, { balanceSats: await nextPair.balanceSats(), kind: nextPair.environment });
+  const created = await createGuestInvoice(store, nextPair, memberId);
+  return { record: created.record, switched: true };
 }
 
 export function isSandboxError(error) { return error instanceof SandboxError || error?.name === 'PracticeClientError'; }
