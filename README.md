@@ -50,7 +50,7 @@ Through the live public demo, Awa's round-1 contribution was paid over Lightning
   </tr>
 </table>
 
-| | |
+| Detail | Value |
 | --- | --- |
 | **Network** | Mutinynet (Bitcoin signet); invoice prefix `lntbs` |
 | **Amount** | 100 sats |
