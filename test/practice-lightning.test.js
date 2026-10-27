@@ -123,3 +123,26 @@ test('without the practice service the guest wallet falls back, and the API is r
   assert.equal(statuses.at(-1), 429);
   assert.equal(statuses.filter(status => status === 201).length, 30);
 });
+
+test('an unreachable treasurer is reported at once for a minute, then retried', async () => {
+  let clock = Date.now();
+  let connects = 0;
+  let online = false;
+  const treasurer = fakeTreasurer();
+  const practice = createPracticeService({ env: practiceEnv, now: () => clock, connectTimeoutMs: 30, failureCooldownMs: 60_000,
+    connectReceiver: () => { connects++; return online ? Promise.resolve(treasurer) : new Promise(() => {}); } });
+  const started = Date.now();
+  assert.equal((await practice.info()).rails.signet.available, false);
+  assert.ok(Date.now() - started >= 25, 'the first check waits for the connection timeout');
+  const quick = Date.now();
+  assert.equal((await practice.info()).rails.signet.available, false);
+  await assert.rejects(practice.createInvoice({ network: 'signet' }), error => error.status === 503);
+  assert.ok(Date.now() - quick < 25, 'later checks answer without waiting');
+  assert.equal(connects, 1);
+  online = true;
+  clock += 60_001;
+  assert.equal((await practice.info()).rails.signet.available, true);
+  assert.equal(connects, 2);
+  assert.equal((await practice.createInvoice({ network: 'signet' })).network, 'signet');
+  assert.equal(connects, 2);
+});

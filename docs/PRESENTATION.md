@@ -54,7 +54,7 @@ flowchart LR
 ## 5. What is proven today
 
 - **A real Lightning payment through the live demo** on 27 October 2026: the Mutinynet faucet paid a 100-sat invoice issued by the treasurer's Alby Hub, which confirmed it; SHA-256(preimage) equals the payment hash. [Evidence](LIGHTNING_PAYMENT_EVIDENCE.md).
-- 45 automated tests, including the four-round savings cycle, provider mismatch and replay cases, and the guest payment paths; browser runs of every payment path.
+- 50 automated tests, including the four-round savings cycle, provider mismatch and replay cases, and the guest payment paths; browser runs of every payment path.
 - **Not yet shown:** a mainnet payment through the demo (it switches on with the treasurer's Blink key), automated payouts, and use by a real circle.
 
 ## 6. Impact and what we would measure

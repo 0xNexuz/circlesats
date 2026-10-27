@@ -39,7 +39,7 @@ function withTimeout(promise, ms, message) {
 }
 
 export function createPracticeService({ env = process.env, connectReceiver = null, connectMainnet = null, connectLnd = null, fetchImpl = globalThis.fetch,
-  faucetUrl = MUTINYNET_FAUCET_URL, connectTimeoutMs = 12_000, faucetTimeoutMs = 70_000,
+  faucetUrl = MUTINYNET_FAUCET_URL, connectTimeoutMs = 8_000, failureCooldownMs = 60_000, faucetTimeoutMs = 70_000,
   settlePollMs = 1_000, settleAttempts = 15, now = () => Date.now() } = {}) {
   // A hosted LND node is preferred for test coins because it stays online.
   const lnd = Boolean(env.LND_REST_URL && env.LND_INVOICE_MACAROON);
@@ -60,16 +60,31 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
   };
   const faucet = faucetUrl.replace(/\/$/, '');
   const connections = {};
+  const failedAt = {};
 
-  // One receive-only connection per rail and warm process, re-created after a failure.
+  // One receive-only connection per rail and warm process, re-created after a
+  // failure. After a failed connection (for example the treasurer's PC is off)
+  // the rail reports unavailable at once for a minute, so visitors fall back to
+  // the sandbox quickly instead of each waiting for the connection timeout.
   async function receiver(network) {
     const rail = rails[network];
     if (!rail?.enabled) throw new PracticeError('This kind of practice payment is not configured.', 503);
-    connections[network] ||= withTimeout(rail.connect(), connectTimeoutMs, 'The treasurer wallet did not respond.');
-    try { return await connections[network]; }
-    catch (error) {
-      connections[network].then(client => client?.close?.(), () => {});
-      delete connections[network];
+    if (!connections[network] && now() - (failedAt[network] ?? -Infinity) < failureCooldownMs) {
+      throw new PracticeError('The treasurer wallet is unavailable.', 503);
+    }
+    if (!connections[network]) {
+      const attempt = Promise.resolve().then(() => rail.connect());
+      connections[network] = withTimeout(attempt, connectTimeoutMs, 'The treasurer wallet did not respond.');
+      // A connection that completes after the timeout is closed, not leaked.
+      connections[network].catch(() => attempt.then(client => client?.close?.(), () => {}));
+    }
+    const pending = connections[network];
+    try {
+      const client = await pending;
+      delete failedAt[network];
+      return client;
+    } catch (error) {
+      if (connections[network] === pending) { delete connections[network]; failedAt[network] = now(); }
       if (!(error instanceof PracticeError)) console.warn(JSON.stringify({ practice: 'receiver-unavailable', network, reason: String(error?.message || '').replace(/[0-9a-f]{80,}/gi, '[redacted]').slice(0, 200) }));
       throw error instanceof PracticeError ? error : new PracticeError('The treasurer wallet is unavailable.', 503);
     }

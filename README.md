@@ -41,7 +41,7 @@ For either: `/api/practice/info` then reports `rails.signet.available: true`. Se
 | Bitcoin / Lightning solution for a local need | Rotating savings circles (*tontines*, *natt*) on Lightning; seeded Dakar Market Circle; [presentation](docs/PRESENTATION.md) |
 | Nostr | Nostr Wallet Connect (NIP-47): the treasurer node receives over NWC, and judges can connect their own wallet over NWC and pay in the demo |
 | At least a Bitcoin/Lightning wallet implementation | Lightning invoices (receive), in-app NWC payment (send), practice wallets with balances; [first verified payment](docs/LIGHTNING_PAYMENT_EVIDENCE.md) |
-| Presentation (text or video) | [docs/PRESENTATION.md](docs/PRESENTATION.md) |
+| Presentation (text or video) | [docs/PRESENTATION.md](docs/PRESENTATION.md); Devpost text in [docs/DEVPOST_SUBMISSION.md](docs/DEVPOST_SUBMISSION.md) |
 | Prototype / MVP | [circlesats-two.vercel.app](https://circlesats-two.vercel.app/) (no sign-up) and the Node app below |
 | AI | Not used; the brief's examples show Bitcoin-only solutions also qualify |
 
