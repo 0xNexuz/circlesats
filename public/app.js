@@ -282,7 +282,9 @@ function renderCycle() {
       memberList.append(row);
     }
     contributions.append(memberList);
-    if (!guest && round.phase === 'open') contributions.append(element('p', 'cycle-help', 'Members sign in with their own access codes and pay from the wallet section.'));
+    if (!guest && round.phase === 'open') contributions.append(element('p', 'cycle-help', window.__CIRCLESATS_STATIC_DEMO
+      ? 'Start the guided demo to simulate each member’s contribution.'
+      : 'Members sign in with their own access codes and pay from the wallet section.'));
     work.append(contributions);
 
     const approval = element('article', 'cycle-step-card');
@@ -375,7 +377,9 @@ function render() {
   $('dashboard-description').textContent = me?.kind === 'guest-demo' ? 'A private sample, separate from the circle’s shared records.' : 'Everything you need for this round, together in one place.';
   $('trust-copy').textContent = state.walletConnected ? 'Payment status checked with the Lightning wallet' : 'Explore the flow with clearly simulated sats';
   $('ledger-copy').textContent = me?.kind === 'guest-demo' ? 'Your private sample ledger is temporary and separate from the shared circle.' : state.walletConnected ? 'Only Lightning wallet-confirmed payments count toward the total.' : 'Only completed simulated contributions count toward the demo total.';
-  $('members-description').textContent = me?.kind === 'guest-demo' ? 'A private practice round. Try Awa’s contribution, then replay whenever you like.' : 'Sign in with your member access code, then contribute from a demo wallet or a connected Lightning wallet.';
+  $('members-description').textContent = me?.kind === 'guest-demo' ? 'A private practice round. Try Awa’s contribution, then replay whenever you like.'
+    : window.__CIRCLESATS_STATIC_DEMO ? 'Start the guided demo to explore this simulated four-member circle.'
+    : 'Sign in with your member access code, then contribute from a demo wallet or a connected Lightning wallet.';
 
   const list = $('members');
   list.replaceChildren();

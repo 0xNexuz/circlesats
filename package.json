@@ -22,7 +22,7 @@
     "verify:mutinynet-payment": "node --env-file=.env.mutinynet scripts/verify-mutinynet-payment.mjs"
   },
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "dependencies": {
     "@getalby/lightning-tools": "9.0.2",

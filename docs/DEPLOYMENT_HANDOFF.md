@@ -51,7 +51,7 @@ Make encrypted off-host backups of `circlesats.json`, `.bak`, and `member-auth.j
 
 ## Remaining external gates
 
-- **Public submission:** user authorization to create/push a public repository, host the demo or record a demo video, and submit a presentation. These actions have not occurred.
+- **Public submission:** the repository and browser-only simulated demo are published. A presentation, demo video, and Devpost submission remain. The public demo has no real receiving wallet or shared ledger.
 - **Real Lightning claim:** a separate, funded signet payer and scoped receiving wallet; one authorized 100-sat test; independent receiver lookup and sanitized evidence. LNbits has only stand-in tests. See [testnet plan](TESTNET_SETUP.md).
 - **Live payout claim:** independent outgoing transaction and recipient receipt verification. CircleSats currently cannot mark a real round complete from a typed treasurer reference.
 - **Broader use:** migration to transactional storage and durable sessions before multi-instance hosting, plus custody/legal review if the product ever holds or directs real pooled funds.

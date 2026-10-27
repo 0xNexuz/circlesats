@@ -2,6 +2,8 @@
 
 **Save together. Pay instantly. Rotate fairly. Track every sat.** CircleSats is a hackathon MVP for small community savings circles. Members contribute an agreed amount each round; a scheduled member receives the pool after group approval and settlement. The seeded Dakar Market Circle has Awa, Mamadou, Fatou, and Ibrahima contributing 100 sats each across four rounds.
 
+**Public guided demo:** [circlesats-two.vercel.app](https://circlesats-two.vercel.app/) — a browser-only simulation with no real Bitcoin movement or shared member ledger.
+
 The app is for organizers and members who need a visible contribution record and a predictable rotation. It is not an escrow, a bank, or an automated payout service.
 
 ## Try the full cycle

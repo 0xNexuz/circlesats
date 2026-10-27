@@ -24,6 +24,10 @@ await writeFile(join(output, 'store-browser.js'), browserStore);
 await cp('src/browser-demo.js', join(output, 'browser-demo.js'));
 
 const index = await readFile(join(output, 'index.html'), 'utf8');
-const tagged = index.replace('<script type="module" src="/app.js"></script>', '<script type="module" src="/browser-demo.js"></script>');
+const tagged = index
+  .replace('<script type="module" src="/app.js"></script>', '<script type="module" src="/browser-demo.js"></script>')
+  .replace('Try a private simulation, or sign in with the access code from your circle organizer.', 'Start a private simulation in this browser. No account or wallet is needed.')
+  .replace('Use the built-in simulated wallet, or connect an external wallet when Lightning is configured.', 'Create a simulated wallet, claim demo sats, and explore contributions without moving Bitcoin.')
+  .replace('Receipts show whether the payment arrived and whether a signed-in member supplied payment proof.', 'Practice receipts label each contribution as simulated, and the payout rotation follows group approvals.');
 if (tagged === index) throw new Error('Could not install the browser demo entry point.');
 await writeFile(join(output, 'index.html'), tagged);

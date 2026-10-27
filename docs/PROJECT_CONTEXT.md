@@ -1,6 +1,12 @@
 # CircleSats project context
 
-Updated 27 October 2026. The user approved implementing and hardening the CircleSats hackathon MVP through MAG Development OS V2. The repo is on `master` with **no commits** and all project files untracked; do not describe local files as pushed or deployed.
+Updated 27 October 2026. The user approved implementing, hardening, and publishing the CircleSats hackathon MVP through MAG Development OS V2. The public repository is [0xNexuz/circlesats](https://github.com/0xNexuz/circlesats) on `master`. The Vercel project in the `xreyys-projects` Hobby team serves a **browser-only simulated demo** at [circlesats-two.vercel.app](https://circlesats-two.vercel.app/); it contains no shared ledger, member sign-in, Lightning receiver, or wallet secrets. The full Node app and private Mutinynet checkpoint remain local. After further changes, verify the deployed commit before calling the release current.
+
+## Public deployment checkpoint — 27 October 2026
+
+- Initial GitHub commit `484004710e2fc5c78644a6190c51e66e78bfec7b` was pushed and independently matched the remote branch. The public Git tree excludes `.env.mutinynet`, `.env.sandbox`, `data/`, and generated `vercel-public/`. The secret scan checked all 64 Git candidate files against two sandbox wallet connections and the private Mutinynet receiver connection.
+- Vercel deployed that commit as a static site, using `npm run build:vercel` and the `vercel-public/` output from `vercel.json`. The public HTTPS page loaded and its guided simulation started. Locally, the same Vercel build funded a 400-sat **simulated** round, recorded three simulated approvals, and opened round two; browser console had no errors. No Lightning transfer or outgoing payout occurred as part of publishing.
+- The browser preview resets on reload. The Node application needs a separate single-instance persistent host before public member accounts or actual Lightning receiving can be offered. A real Mutinynet settlement still requires separate manual payment authorization and independent verification.
 
 ## Current genuine Mutinynet invoice checkpoint — 27 October, 13:08 UTC
 

@@ -1,6 +1,6 @@
 # Deployment and submission readiness
 
-Status on 27 October 2026: **local MVP verified and hardened for a single-instance public demo; no public deployment, push, demo video, or submission**. The [Devpost rules](https://dakar-bitcoin-hack-2026.devpost.com/rules) require a presentation, public GitHub repository, and an internet-accessible MVP **or** demo video by 20 November 2026. Publishing remains a separate user authorization step. The exact operator setup is in [deployment handoff](DEPLOYMENT_HANDOFF.md).
+Status on 27 October 2026: **public repository and Vercel simulated demo deployed**. The public site is [circlesats-two.vercel.app](https://circlesats-two.vercel.app/), linked to [0xNexuz/circlesats](https://github.com/0xNexuz/circlesats). It runs the savings-cycle engine in one browser tab with no persistent shared ledger, member access, or Lightning receiving. The full Node app is still local. The [Devpost rules](https://dakar-bitcoin-hack-2026.devpost.com/rules) require a presentation, public GitHub repository, and an internet-accessible MVP **or** demo video by 20 November 2026. A presentation, demo video, and submission have not been made. The operator setup for the full Node app is in [deployment handoff](DEPLOYMENT_HANDOFF.md).
 
 ## Available demonstration paths
 
@@ -22,7 +22,7 @@ Status on 27 October 2026: **local MVP verified and hardened for a single-instan
 - Live sandbox: four 100 sat fake-sat incoming payments with invoice/hash/amount checks, preimage proof, payer disconnection/reconnection before first payment, duplicate rejection, durable reload, and three approvals. The sanitized local evidence is `data/alby-sandbox-evidence.json`; one sandbox payer paid all four invoices. No outgoing payout was verified.
 - Browser: 375 px mobile, 615 px tablet, and 1440 px desktop checks showed working navigation and no horizontal overflow. The preloader showed, released scrolling, and revealed the page at each width; the 375 px browser flow created a demo wallet, obtained simulated sats, and recorded a labeled receipt. Physical-device and public-network checks remain.
 - Local production startup: with private member provisioning and a temporary external `DATA_DIR`, `GET /api/group` returned 200, missing proxy identity rejected guest creation with 503, a valid `X-Real-IP` allowed it, HSTS/CSP/Secure cookie headers were present, and the instance lock existed. This was a loopback smoke test, not a public HTTPS deployment.
-- **Submission P0:** public GitHub repository; presentation; accessible MVP or demo video. No publishing has been authorized yet.
+- **Submission P0:** presentation and final Devpost submission remain. The public GitHub repository and accessible simulated MVP are available; the full Lightning receiving app has not been deployed.
 - **Real-payment P0:** an actual signet or LNbits settlement, scoped receiver credentials, and independent payout verification would be needed before claiming a live savings product. The Alby Sandbox check is an integration demo using fake sats.
 
 No Bitcoin Core, LDK, BTCPay Server, Docker node, USSD, mobile money, or production custody infrastructure is needed for the current hackathon demonstration.
