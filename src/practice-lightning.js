@@ -91,6 +91,9 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
       return { ok: response.ok, data };
     };
     const offer = await request(`${faucet}/api/lnurlw`);
+    if (!offer.ok || offer.data?.tag !== 'withdrawRequest') {
+      console.warn(JSON.stringify({ practice: 'faucet-no-offer', ok: offer.ok, error: String(offer.data?.error || offer.data?.reason || '').slice(0, 300) }));
+    }
     if (!offer.ok || offer.data?.tag !== 'withdrawRequest' || typeof offer.data.k1 !== 'string' || typeof offer.data.callback !== 'string') {
       throw new PracticeError(offer.data?.error === 'Too many requests'
         ? 'The Mutinynet faucet daily limit is reached. Try again later.' : 'The Mutinynet faucet did not offer a payment.');
@@ -106,6 +109,7 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
     const paid = await request(callback.href);
     if (paid.data?.status !== 'OK') {
       const reason = String(paid.data?.reason || '');
+      console.warn(JSON.stringify({ practice: 'faucet-refused', reason: reason.slice(0, 300) }));
       throw new PracticeError(/too many payments/i.test(reason) ? 'The Mutinynet faucet daily limit is reached. Try again later.'
         : /route/i.test(reason) ? 'The faucet could not find a route to the treasurer node. It may be offline or short of incoming capacity.'
           : 'The Mutinynet faucet could not complete this payment.');
@@ -177,6 +181,15 @@ export function createPracticeHandler(service) {
     res.end(JSON.stringify(value));
   }
   return async function handle(req, res, action) {
+    const started = Date.now();
+    const finish = res.end.bind(res);
+    // One log line per request, without secrets, invoices or addresses.
+    res.end = (...args) => {
+      let detail = {};
+      try { const body = JSON.parse(String(args[0] || '{}')); detail = { result: body.status || (body.available === undefined ? undefined : `available:${body.available}`), error: body.error, hash: String(body.paymentHash || '').slice(0, 12) || undefined }; } catch { /* not JSON */ }
+      console.log(JSON.stringify({ practice: action, method: req.method, status: res.statusCode, ms: Date.now() - started, ...detail }));
+      return finish(...args);
+    };
     try {
       if (action === 'info') {
         if (req.method !== 'GET') return send(res, 405, { error: 'Use GET.' });
@@ -194,7 +207,7 @@ export function createPracticeHandler(service) {
       return send(res, 404, { error: 'Not found.' });
     } catch (error) {
       const known = error instanceof PracticeError || error instanceof LightningError;
-      if (!known) console.error('Practice payment request failed', { name: error?.name });
+      if (!known) console.error('Practice payment request failed', { name: error?.name, message: String(error?.message || '').replace(/nostr\+walletconnect:\/\/\S+/gi, '[redacted]').slice(0, 200) });
       return send(res, known ? (error.status || 502) : 500, { error: known ? error.message : 'Unable to complete the request.' });
     }
   };
