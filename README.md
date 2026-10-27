@@ -12,14 +12,13 @@
 <p align="center">
   <a href="https://circlesats-two.vercel.app"><b>Try the live demo</b></a> ·
   <a href="#verified-lightning-payment-27-october-2026">Payment evidence</a> ·
-  <a href="docs/PRESENTATION.md">Presentation</a> ·
   <a href="#hackathon-requirements">Requirements</a>
 </p>
 
 <p align="center">
   <img alt="Lightning payment verified on 27 October 2026" src="https://img.shields.io/badge/Lightning_payment-verified_27_Oct_2026-2e7d32">
   <img alt="Nostr Wallet Connect, NIP-47" src="https://img.shields.io/badge/Nostr-Wallet_Connect_(NIP--47)-7b3fe4">
-  <img alt="50 tests passing" src="https://img.shields.io/badge/tests-50_passing-2e7d32">
+  <img alt="58 tests passing" src="https://img.shields.io/badge/tests-58_passing-2e7d32">
   <img alt="Live on Vercel" src="https://img.shields.io/badge/demo-live-12352d">
 </p>
 
@@ -80,17 +79,17 @@ No sign-up. Each visitor gets a private circle, so judges never see or affect ea
 3. Pay it:
    - **With a Lightning wallet** (header shows **BITCOIN LIGHTNING · REAL SATS**): scan the QR code, copy the `lnbc…` invoice, or connect your wallet with **Nostr Wallet Connect** and pay 100 sats inside the page. CircleSats detects the payment by itself. This is a real Bitcoin payment and is not refunded.
    - **Without a wallet:** tap **No Lightning wallet? Use free test coins** (or, if the header already shows **MUTINYNET LIGHTNING · TEST COINS**), then **Pay with demo wallet**. The Mutinynet faucet pays a test-coin invoice over Lightning for you, in up to a minute.
-4. Check the receipt: SHA-256 of the **preimage** equals the **payment hash**.
+4. Check the receipt. It keeps the **paid invoice**: decode it with any BOLT11 decoder to see the circle's node as the payee and the same **payment hash**. SHA-256 of the **preimage** equals that hash.
 5. **Simulate** the other three members' payments, approve, and watch the payout rotate through all four rounds in **The savings cycle**.
 
 ## Hackathon requirements
 
 | Requirement | Where to see it |
 | --- | --- |
-| Bitcoin / Lightning solution for a local need | Rotating savings circles (*tontines*, *natt*) on Lightning, with the seeded Dakar Market Circle. See the [presentation](docs/PRESENTATION.md). |
+| Bitcoin / Lightning solution for a local need | Rotating savings circles (*tontines*, *natt*) on Lightning, with the seeded Dakar Market Circle. See [Why CircleSats](#why-circlesats). |
 | Nostr | Nostr Wallet Connect (NIP-47): judges can connect their own wallet and pay inside the demo, and a treasurer node such as Alby Hub can receive over a receive-only NWC connection. |
 | At least a Bitcoin/Lightning wallet implementation | Lightning invoices (receive), in-app NWC payment (send), practice wallets with balances, and the [verified payment](#verified-lightning-payment-27-october-2026) above. |
-| Presentation (text or video) | [docs/PRESENTATION.md](docs/PRESENTATION.md); Devpost text in [docs/DEVPOST_SUBMISSION.md](docs/DEVPOST_SUBMISSION.md) |
+| Presentation (text or video) | Submitted with the Devpost entry |
 | Prototype / MVP | [circlesats-two.vercel.app](https://circlesats-two.vercel.app) (no sign-up) and the full Node app in this repository |
 | AI | Not used; the brief's examples show Bitcoin-only solutions also qualify. |
 
@@ -122,7 +121,7 @@ If a mode is unavailable, the demo falls back to the next one automatically.
 
 - Receive-only credentials, checked before use: a Blink key with Write, an NWC connection with `pay_invoice`, or an LND macaroon that could pay or manage the node is refused.
 - A payment counts only when the receiving wallet reports that exact invoice, hash and amount as settled. The preimage is checked on the server and again in the browser.
-- The faucet is asked to pay only pending, unexpired 100-sat invoices that the treasurer itself issued, so the demo cannot be used to send coins anywhere else.
+- The faucet is asked to pay only pending, unexpired 100-sat invoices that the treasurer itself issued, so the demo cannot be used to send coins anywhere else. Each visitor gets at most 8 test-coin payments an hour and 12 a day, and simultaneous requests for one invoice share one payment, so nobody can use up the shared faucet allowance.
 - Unique payment hashes, CSRF-protected sessions, a strict Content Security Policy, rate limits, and no secrets in the browser or in Git.
 
 More detail: [architecture](docs/ARCHITECTURE.md), [security boundaries](docs/SECURITY.md), [savings-cycle rules](docs/SAVINGS_CYCLE.md).
@@ -139,13 +138,13 @@ npm start          # http://localhost:3100 → Start guided demo
 Verify:
 
 ```bash
-npm test                 # 50 tests: the four-round cycle, payment matching, replay and mismatch cases, every payment path
+npm test                 # 58 tests: the four-round cycle, payment matching, replay and mismatch cases, forged proofs, abuse limits, every payment path
 npm run build
 npm run check:secrets
 npm run build:vercel && npm run preview:vercel   # the public demo at http://127.0.0.1:3200
 ```
 
-The 50 tests last passed on 27 October 2026 on Node 22, with dependencies rebuilt from their upstream sources because the npm registry was unreachable. Rerun `npm ci && npm test` on Node 24 before a release.
+The 58 tests last passed on 27 October 2026 on Node 22, with dependencies rebuilt from their upstream sources because the npm registry was unreachable. Rerun `npm ci && npm test` on Node 24 before a release.
 
 <details>
 <summary><b>Operator setup for real payments on the public demo</b></summary>
@@ -226,7 +225,6 @@ The first script creates or reuses two sandbox wallets, pays four member invoice
 
 ## Project documents
 
-- [Presentation](docs/PRESENTATION.md) and [Devpost submission text](docs/DEVPOST_SUBMISSION.md)
 - [Lightning payment evidence](docs/LIGHTNING_PAYMENT_EVIDENCE.md) and [Alby Sandbox evidence](docs/ALBY_SANDBOX_EVIDENCE.md)
 - [Three-minute demo script](docs/DEMO_WALKTHROUGH.md) and [judging evidence](docs/JUDGING_EVIDENCE.md)
 - [Architecture](docs/ARCHITECTURE.md), [savings-cycle rules](docs/SAVINGS_CYCLE.md) and [security boundaries](docs/SECURITY.md)

@@ -2,6 +2,15 @@
 
 Updated 27 October 2026. The user approved implementing, hardening, and publishing the CircleSats hackathon MVP through MAG Development OS V2. The public repository is [0xNexuz/circlesats](https://github.com/0xNexuz/circlesats) on `master`. The Vercel project in the `xreyys-projects` Hobby team serves a **browser-only simulated demo** at [circlesats-two.vercel.app](https://circlesats-two.vercel.app/); it contains no shared ledger, member sign-in, Lightning receiver, or wallet secrets. The full Node app and private Mutinynet checkpoint remain local. After further changes, verify the deployed commit before calling the release current.
 
+## Lightning adversarial review and hardening — 27 October 2026 (branch `claude/lightning-hardening`)
+
+- Review (user asked how strong the Lightning implementation is): existing 50 tests passed with 96.9% line / 82.7% branch coverage; a scratch attack battery found no critical or high issues. Invoice tampering, other networks, amounts, hashes, expiry, replay, forged browser proofs and spending credentials were all rejected.
+- Independent check of the 27 October payment with a separate pure-Python BOLT11 decoder: checksum and signature valid, recovered payee `024c3d20…62da`, 100 sats, 18:02:54 UTC, SHA-256(preimage) = hash. Vercel logs for that time are past Hobby retention; the production status endpoint is not reachable from the agent workspace.
+- Fixed: (1) one address could use the shared faucet allowance (30 pays per 10 minutes); now 8 per hour and 12 per day per address and instance, and simultaneous pay requests for one invoice share one faucet payment. (2) Paid receipts dropped the invoice, so a hash/preimage pair could not be tied to the treasurer; the owner's paid record and receipt now keep the invoice. (4) Forwarding headers are trusted only on Vercel (`VERCEL=1`); LNbits amounts are compared in msat only; the Node app validates testnet and regtest invoices as well as signet (the Alby sandbox path is unchanged).
+- `test/lightning-hardening.test.js` (8 tests) keeps the attack cases as regression tests; 58/58 pass.
+- The user asked to remove `docs/PRESENTATION.md` and `docs/DEVPOST_SUBMISSION.md` from GitHub and keep them in chat; both were deleted (they remain in Git history) and their links removed.
+- Still unproven: a mainnet payment (awaiting the Blink key), the in-app NWC payment with a real wallet, and Lightning payouts (not implemented by design).
+
 ## Presentable README — 27 October 2026 (branch `claude/readme`)
 
 - README rebuilt for judges: logo, links, badges, app screenshots (`docs/images/`, captured from the built site with stand-in payment services; no payment data shown), the 27 October payment evidence with the operator's two screenshots (`docs/evidence/`), a one-line preimage check, requirements, payment-mode table, and collapsible operator and Node-app sections. Stale "no real payment yet" statements removed.
