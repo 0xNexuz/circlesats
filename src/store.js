@@ -144,6 +144,13 @@ export function createStore(file = null, { initialGroup = GROUP } = {}) {
       return record ? clone(record) : null;
     },
     async createWallet(memberId) { return mutate(() => { wallets[memberId] ||= { balanceSats: 0, claimed: false, claimedRoundIds: [] }; return wallets[memberId]; }); },
+    // Records the balance reported by a guest's sandbox wallet and its kind.
+    async syncWallet(memberId, { balanceSats, kind } = {}) { return mutate(() => {
+      const wallet = wallets[memberId]; if (!wallet) return null;
+      if (Number.isSafeInteger(balanceSats) && balanceSats >= 0) wallet.balanceSats = balanceSats;
+      if (kind === 'alby-sandbox') wallet.kind = kind;
+      return wallet;
+    }); },
     async claimDemo(memberId) { return mutate(() => {
       const wallet = wallets[memberId]; const roundId = activeRound()?.id;
       if (!wallet || !roundId) return null;

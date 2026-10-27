@@ -2,13 +2,24 @@
 
 **Save together. Pay instantly. Rotate fairly. Track every sat.** CircleSats is a hackathon MVP for small community savings circles. Members contribute an agreed amount each round; a scheduled member receives the pool after group approval and settlement. The seeded Dakar Market Circle has Awa, Mamadou, Fatou, and Ibrahima contributing 100 sats each across four rounds.
 
-**Public guided demo:** [circlesats-two.vercel.app](https://circlesats-two.vercel.app/) — a browser-only simulation with no real Bitcoin movement or shared member ledger.
+**Public guided demo:** [circlesats-two.vercel.app](https://circlesats-two.vercel.app/) — a private practice circle in your browser. Your own contribution is a real Lightning invoice paid in-app from a private Alby sandbox wallet (test sats, no real Bitcoin); there is no shared member ledger.
+
+### Judge quick test (about one minute, no wallet or sign-up)
+
+1. Open the demo and choose **Start guided demo**.
+2. **Create demo wallet** — CircleSats creates two private [Alby Developer Sandbox](https://github.com/getAlby/nwc-faucet) wallets just for your tab: one receives, one pays. The header changes to **ALBY SANDBOX · TEST SATS**.
+3. **Get 200 demo sats for this round** — the sandbox faucet tops up your paying wallet.
+4. **Go to my contribution** → **Create demo contribution** issues a real BOLT11 invoice from your receiving wallet.
+5. **Pay with demo wallet** pays it over Nostr Wallet Connect. CircleSats credits it only after the receiving wallet reports it settled and SHA-256(preimage) matches the payment hash. The receipt shows the payment hash.
+6. Use **Simulate … payment** for the other three members, then approve and simulate the payout in **The savings cycle**.
+
+Every visitor gets separate wallets and a separate circle, so judges never see or affect each other's payments. If the sandbox is unreachable, the same buttons fall back to the original clearly labelled simulation. Sandbox sats have no value and are not routed over the public Lightning network.
 
 The app is for organizers and members who need a visible contribution record and a predictable rotation. It is not an escrow, a bank, or an automated payout service.
 
 ## Try the full cycle
 
-The Vercel site is a **browser-only guided simulation**. It runs the same savings-cycle rules locally in each visitor's tab, so visitors can simulate contributions, approvals, and four rotating payouts without a wallet connection. The preview resets on reload and does not create Lightning invoices or shared receipts. The full Node app below is required for member access and NWC/LNbits receiving; it needs one persistent host and must not be run with Vercel's temporary filesystem. Build the static preview with `npm run build:vercel` and inspect it with `npm run preview:vercel`. Vercel uses [vercel.json](vercel.json) to publish `vercel-public/` and no private environment variables.
+The Vercel site is a **browser-only guided demo**. It runs the same savings-cycle rules locally in each visitor's tab, so visitors can try contributions, approvals, and four rotating payouts without bringing a wallet. The visitor's own contribution uses the private sandbox wallets described above; other members, approvals, and payouts are simulated. The preview resets on reload and keeps no shared receipts. The Node app gives guest demos the same private sandbox wallets server-side; set `GUEST_LIGHTNING_SANDBOX=0` to keep guests fully simulated. The full Node app below is required for member access and NWC/LNbits receiving; it needs one persistent host and must not be run with Vercel's temporary filesystem. Build the static preview with `npm run build:vercel` and inspect it with `npm run preview:vercel`. Vercel uses [vercel.json](vercel.json) to publish `vercel-public/` and no private environment variables.
 
 Run locally with Node.js 24+:
 
@@ -71,7 +82,10 @@ npm test
 npm run build
 npm run check:secrets
 npm audit --omit=dev --audit-level=moderate
+npm run test:guest-sandbox   # live: two guests pay real sandbox invoices (needs internet)
 ```
+
+On 27 October 2026, on branch `claude/judge-lightning-sandbox`, 33 tests passed (Node 22, with locked dependencies rebuilt from their upstream sources because the npm registry was unreachable; rerun with `npm ci` on Node 24 before release), including the guest sandbox flow against an in-memory stand-in for the faucet and NWC wallets. A Chromium run of the built Vercel preview, with that stand-in behind the real faucet URL and the production Content Security Policy, completed two isolated judge payments and the offline fallback. `npm run test:guest-sandbox` against the live faucet has **not yet been run**.
 
 On 27 October 2026, 25 tests passed. They cover access control, the four-round API journey, durable cycle history, guest isolation, LNbits and NWC stand-ins, delayed and expired payments, reconnects, duplicate prevention, Signet invoice parsing, optional preimage verification, environment isolation, proxy identity, production provisioning, and preloader readiness. A separate live Alby Developer Sandbox check passed four fake-sat payments and three approvals again. The production build and dependency audit passed. No CircleSats LNbits, signet, or real-Bitcoin settlement has been verified.
 

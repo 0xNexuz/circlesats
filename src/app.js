@@ -6,6 +6,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import QRCode from 'qrcode';
 import { LightningError } from './lnbits.js';
 import { validateSignetInvoice } from './invoice-validation.js';
+import { claimGuestSats, createGuestInvoice, isSandboxError, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
 
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
 const securityHeaders = {
@@ -57,8 +58,22 @@ function publicRecord(record, viewerId = null) {
   };
 }
 
-export function createApp({ store, lightning, auth, publicDir, paymentEnvironment = lightning ? 'unspecified' : 'simulated', sandboxPayerWalletPubkey = null, trustProxy = false }) {
+export function createApp({ store, lightning, auth, publicDir, paymentEnvironment = lightning ? 'unspecified' : 'simulated', sandboxPayerWalletPubkey = null, trustProxy = false,
+  openGuestSandbox = null, maxGuestSandboxes = 50 }) {
   const creating = new Map();
+  // Guest demos may each get a private Alby sandbox wallet pair; cap how many
+  // are open at once so one host cannot exhaust relays or the public faucet.
+  const openSandboxes = new Set();
+  const guestSandboxOpener = () => {
+    if (!openGuestSandbox || openSandboxes.size >= maxGuestSandboxes) return null;
+    return async () => {
+      const pair = await openGuestSandbox();
+      const close = pair.close.bind(pair);
+      openSandboxes.add(pair);
+      pair.close = () => { openSandboxes.delete(pair); close(); };
+      return pair;
+    };
+  };
   const mode = lightning ? 'lightning' : 'demo';
   const cookie = req => /(?:^|; )circlesats_session=([^;]+)/.exec(req.headers.cookie || '')?.[1];
   const session = req => auth?.get(cookie(req));
@@ -163,6 +178,7 @@ export function createApp({ store, lightning, auth, publicDir, paymentEnvironmen
         if (current.kind !== 'guest-demo') return send(res, 403, { error: 'Custom groups are available in the private demo.' });
         const group = await current.demoStore.createDemoGroup(current.memberId, await body(req));
         current.memberId = group.members[0].id;
+        current.sandbox?.close(); current.sandbox = null;
         return send(res, 201, { group });
       }
       if (req.method === 'POST' && url.pathname === '/api/demo/contribute') {
@@ -202,22 +218,39 @@ export function createApp({ store, lightning, auth, publicDir, paymentEnvironmen
         return send(res, 201, { cycle });
       }
       if (req.method === 'POST' && url.pathname === '/api/wallet/create') {
-        const memberId = requireMember(req, res); if (!memberId) return;
+        const current = memberSession(req, res); if (!current) return;
+        const memberId = current.memberId;
         if (activeMode(req) !== 'demo') return send(res, 409, { error: 'Built-in demo wallets are available only in demo mode.' });
+        if (current.kind === 'guest-demo') {
+          if (current.walletOpening) return send(res, 409, { error: 'Your wallet is already being created.' });
+          current.walletOpening = true;
+          try {
+            const { pair, wallet, created } = await openGuestWallet(current.demoStore, memberId, guestSandboxOpener());
+            if (created) { current.sandbox?.close(); current.sandbox = pair; }
+            return send(res, 201, { wallet });
+          } finally { current.walletOpening = false; }
+        }
         return send(res, 201, { wallet: await activeStore(req).createWallet(memberId) });
       }
       if (req.method === 'POST' && url.pathname === '/api/wallet/claim-demo') {
-        const memberId = requireMember(req, res); if (!memberId) return;
+        const current = memberSession(req, res); if (!current) return;
+        const memberId = current.memberId;
         if (activeMode(req) !== 'demo') return send(res, 409, { error: 'Simulated sats are unavailable in Lightning mode.' });
-        const wallet = await activeStore(req).claimDemo(memberId);
+        const wallet = current.kind === 'guest-demo'
+          ? await claimGuestSats(current.demoStore, current.sandbox || null, memberId)
+          : await activeStore(req).claimDemo(memberId);
         return wallet ? send(res, 200, { wallet }) : send(res, 409, { error: 'Create a demo wallet first, or your one-time claim was used.' });
       }
       if (req.method === 'POST' && url.pathname === '/api/wallet/pay-demo') {
-        const memberId = requireMember(req, res); if (!memberId) return;
+        const current = memberSession(req, res); if (!current) return;
+        const memberId = current.memberId;
         if (activeMode(req) !== 'demo') return send(res, 409, { error: 'Demo payments are unavailable in Lightning mode.' });
         const ledger = activeStore(req);
         const record = ledger.latestFor(memberId);
         if (!record || record.status !== 'pending') return send(res, 409, { error: 'Create a pending contribution first.' });
+        if (current.kind === 'guest-demo' && record.provider === 'alby-sandbox') {
+          return send(res, 200, { record: publicRecord(await payGuestInvoice(ledger, current.sandbox || null, memberId), memberId) });
+        }
         const paid = await ledger.payDemo(memberId, record.id, ledger.group().amountSats);
         return paid ? send(res, 200, { record: publicRecord(paid, memberId) }) : send(res, 409, { error: 'Create a wallet and claim enough demo sats first.' });
       }
@@ -245,7 +278,11 @@ export function createApp({ store, lightning, auth, publicDir, paymentEnvironmen
         if (!round || round.phase !== 'open') return send(res, 409, { error: 'This round is not open for contributions.' });
         const creationKey = `${session(req).kind === 'guest-demo' ? cookie(req) : member.id}:${round.id}`;
         if (creating.has(creationKey)) return send(res, 409, { error: 'Invoice creation already in progress.' });
-        const work = (async () => {
+        const guestSandbox = session(req).kind === 'guest-demo' ? session(req).sandbox : null;
+        const work = guestSandbox ? (async () => {
+          const result = await createGuestInvoice(ledger, guestSandbox, member.id);
+          return { status: result.created ? 201 : 200, record: publicRecord(result.record, memberId) };
+        })() : (async () => {
           await reconcile();
           const existing = ledger.latestFor(member.id);
           if (existing?.status === 'paid') return { status: 409, error: 'This member already contributed.' };
@@ -288,7 +325,8 @@ export function createApp({ store, lightning, auth, publicDir, paymentEnvironmen
     } catch (error) {
       const status = error.status || (error instanceof LightningError ? 502 : 500);
       if (status >= 500) console.error('CircleSats request failed', { status, name: error.name, code: error.code || null });
-      send(res, status, { error: status >= 500 ? 'Unable to complete the request.' : error.message });
+      // Sandbox messages are written for visitors and never contain wallet secrets.
+      send(res, status, { error: status >= 500 && !isSandboxError(error) ? 'Unable to complete the request.' : error.message });
     }
   });
 }
