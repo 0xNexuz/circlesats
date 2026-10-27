@@ -71,8 +71,9 @@ export function createLnbits({ baseUrl, invoiceKey, fetchImpl = fetch }) {
         return { settled: false };
       }
       const details = result.details;
+      // LNbits reports payment amounts in millisatoshis.
       if (!details || String(details.checking_id) !== checkingId || !Number.isSafeInteger(details.amount) ||
-          ![amountSats, amountSats * 1000].includes(details.amount) ||
+          details.amount !== amountSats * 1000 ||
           String(details.payment_hash).toLowerCase() !== paymentHash.toLowerCase() ||
           details.bolt11 !== paymentRequest ||
           (details.status && !['success','settled'].includes(details.status))) {

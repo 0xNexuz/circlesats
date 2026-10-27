@@ -42,7 +42,10 @@ const publicRecord = (record, viewerId) => ({
   environment: PRACTICE_PROVIDERS.has(record.provider) ? record.provider : 'simulated', status: record.status, createdAt: record.createdAt,
   expiresAt: record.expiresAt, paidAt: record.paidAt || null,
   paymentHash: record.status === 'paid' && viewerId ? record.paymentHash : null,
-  paymentRequest: record.status === 'pending' && viewerId === record.memberId ? record.paymentRequest : null,
+  // A paid Lightning invoice stays on the owner's receipt: decoding it shows
+  // the payee node and payment hash, which ties the receipt to the treasurer.
+  paymentRequest: viewerId === record.memberId && (record.status === 'pending' ||
+    (record.status === 'paid' && /^ln/i.test(record.paymentRequest || ''))) ? record.paymentRequest : null,
   preimage: record.status === 'paid' && viewerId === record.memberId ? record.proofPreimage ?? null : null,
   attribution: record.attribution || 'unverified'
 });

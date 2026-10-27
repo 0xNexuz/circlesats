@@ -3,7 +3,11 @@ import { LightningError } from './lnbits.js';
 
 // BOLT11 human-readable prefixes for the networks CircleSats accepts.
 // Mainnet is used only by the practice payments on the public demo.
-const PREFIXES = { signet: /^lntbs(?:\d+[munp]?)?1/i, mainnet: /^lnbc(?!rt)(?:\d+[munp]?)?1/i };
+const PREFIXES = { signet: /^lntbs(?:\d+[munp]?)?1/i, mainnet: /^lnbc(?!rt)(?:\d+[munp]?)?1/i,
+  testnet: /^lntb(?!s)(?:\d+[munp]?)?1/i, regtest: /^lnbcrt(?:\d+[munp]?)?1/i };
+// The invoice network expected for each real-network PAYMENT_ENVIRONMENT of the
+// Node app. The Alby sandbox (fake sats) stays on its separate checked path.
+export const ENVIRONMENT_NETWORKS = { signet: 'signet', testnet: 'testnet', regtest: 'regtest' };
 
 // Checks a provider invoice before storing it: network prefix, checksum-parsed
 // fields, exact amount, payment hash and a current expiry. Returns the expiry.

@@ -5,7 +5,7 @@ import { extname, join } from 'node:path';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import QRCode from 'qrcode';
 import { LightningError } from './lnbits.js';
-import { validateSignetInvoice } from './invoice-validation.js';
+import { ENVIRONMENT_NETWORKS, validateLightningInvoice } from './invoice-validation.js';
 import { PRACTICE_PROVIDERS, claimGuestSats, createGuestInvoice, isSandboxError, openGuestWallet, payGuestInvoice } from './guest-sandbox.js';
 
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
@@ -53,7 +53,10 @@ function publicRecord(record, viewerId = null) {
     expiresAt: record.expiresAt,
     paidAt: record.paidAt ?? null,
     paymentHash: record.status === 'paid' && viewerId ? record.paymentHash : null,
-    paymentRequest: record.status === 'pending' && viewerId === record.memberId ? record.paymentRequest : null,
+    // A paid Lightning invoice stays on the owner's receipt: decoding it shows
+    // the payee node and payment hash, which ties the receipt to the treasurer.
+    paymentRequest: viewerId === record.memberId && (record.status === 'pending' ||
+      (record.status === 'paid' && /^ln/i.test(record.paymentRequest || ''))) ? record.paymentRequest : null,
     preimage: record.status === 'paid' && viewerId === record.memberId ? record.proofPreimage ?? null : null,
     attribution: record.attribution || 'unverified'
   };
@@ -295,8 +298,11 @@ export function createApp({ store, lightning, auth, publicDir, paymentEnvironmen
             checkingId: randomUUID(),
             paymentHash: randomBytes(32).toString('hex')
           };
-          const expiresAt = activeMode(req) === 'lightning' && paymentEnvironment === 'signet'
-            ? validateSignetInvoice({ ...invoice, amountSats: group.amountSats })
+          // Every real receiver invoice is decoded and checked for network,
+          // amount, hash and expiry before it is stored.
+          const invoiceNetwork = activeMode(req) === 'lightning' ? ENVIRONMENT_NETWORKS[paymentEnvironment] : null;
+          const expiresAt = invoiceNetwork
+            ? validateLightningInvoice({ ...invoice, amountSats: group.amountSats, network: invoiceNetwork })
             : new Date(Date.now() + 1800_000).toISOString();
           const record = {
             id: randomUUID(), groupId: group.id, cycleId: round.cycleId, roundId: round.id,

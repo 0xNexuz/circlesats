@@ -437,6 +437,11 @@ function selectMember(memberId) {
   scrollToSection(!me?.memberId && statusOf(memberId) !== 'paid' ? 'wallet-section' : 'payment-section');
 }
 
+// The paid invoice ties a receipt to the treasurer: decoding it shows the payee
+// node, amount and the same payment hash.
+const paidInvoice = record => /^ln/i.test(record.paymentRequest || '')
+  ? ` · Paid invoice (decode it to see the payee node): ${record.paymentRequest}` : '';
+
 function renderPayment() {
   const panel = $('payment-panel');
   panel.replaceChildren(); panel.classList.add('active');
@@ -449,7 +454,7 @@ function renderPayment() {
   if (record?.status === 'paid') {
     const receipt = document.createElement('div'); receipt.className = 'receipt';
     if (['mainnet', 'mutinynet', 'alby-sandbox'].includes(record.provider)) {
-      const proof = `${record.paymentHash ? ` · Payment hash: ${record.paymentHash}` : ''}${record.preimage ? ` · Preimage: ${record.preimage}` : ''}`;
+      const proof = `${record.paymentHash ? ` · Payment hash: ${record.paymentHash}` : ''}${record.preimage ? ` · Preimage: ${record.preimage}` : ''}${paidInvoice(record)}`;
       receipt.textContent = record.provider === 'mainnet'
         ? `Round ${state.round?.number || state.cycle.rounds.length} · ${record.amountSats} sats · Bitcoin Lightning (mainnet) · real sats · Confirmed ${new Date(record.paidAt).toLocaleString()} · Paid from the visitor’s own Lightning wallet; the treasurer wallet confirmed settlement${record.preimage ? ' and the preimage was verified' : '; the wallet did not provide a preimage'}; payer identity not verified${proof}`
         : record.provider === 'mutinynet'
@@ -458,7 +463,7 @@ function renderPayment() {
       panel.append(receipt); return;
     }
     const attribution = record.attribution === 'member-proof' ? 'Payment proof linked to the signed-in member account' : record.attribution === 'demo-wallet' ? me?.kind === 'guest-demo' ? 'Simulated guest payment; identity not verified' : 'Paid from this member’s simulated wallet' : record.attribution === 'demo-facilitator' ? 'Recorded by the demo facilitator; no wallet payment or identity check' : 'Payment received; payer identity unverified';
-    receipt.textContent = `Round ${state.round?.number || state.cycle.rounds.length} · ${record.amountSats} sats · ${record.provider === 'demo' ? 'Simulated' : `${record.provider?.toUpperCase()} · ${paymentLabel()}`} · Confirmed ${new Date(record.paidAt).toLocaleString()} · ${attribution}${record.paymentHash ? ` · ${state.mode === 'demo' ? 'Demo reference' : 'Payment hash'}: ${record.paymentHash}` : ' · Sign in to view the payment reference'}`;
+    receipt.textContent = `Round ${state.round?.number || state.cycle.rounds.length} · ${record.amountSats} sats · ${record.provider === 'demo' ? 'Simulated' : `${record.provider?.toUpperCase()} · ${paymentLabel()}`} · Confirmed ${new Date(record.paidAt).toLocaleString()} · ${attribution}${record.paymentHash ? ` · ${state.mode === 'demo' ? 'Demo reference' : 'Payment hash'}: ${record.paymentHash}` : ' · Sign in to view the payment reference'}${record.provider === 'demo' ? '' : paidInvoice(record)}`;
     panel.append(receipt); return;
   }
   if (record?.status === 'expired' && state.mode === 'lightning') {

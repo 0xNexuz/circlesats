@@ -159,7 +159,8 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
     }
   }
 
-  return {
+  const paying = new Map();
+  const service = {
     get enabled() { return Object.values(rails).some(rail => rail.enabled); },
     async info() {
       const result = {};
@@ -188,38 +189,66 @@ export function createPracticeService({ env = process.env, connectReceiver = nul
       if (status.settled) return settledResult(record, status, network);
       return { status: status.failed ? 'expired' : 'pending', network, paymentHash: record.paymentHash };
     },
-    // Signet only, and safe to retry: an invoice already settled is reported, never paid again.
-    async pay(input) {
-      const { record, status, expiresAt, network } = await ownedInvoice(input);
-      if (status.settled) return settledResult(record, status, network);
-      if (network !== 'signet') throw new PracticeError('Pay this invoice from your own Lightning wallet, then check again.', 400);
-      if (status.failed || Date.parse(expiresAt) <= now()) throw new PracticeError('This invoice has expired. Create a new contribution.', 409);
-      await faucetPay(record.paymentRequest);
-      const node = await receiver(network);
-      for (let attempt = 0; attempt < settleAttempts; attempt++) {
-        let current;
-        try { current = await node.checkPayment(record); } catch { current = { settled: false }; }
-        if (current.settled) return settledResult(record, current, network);
-        await sleep(settlePollMs);
+    // Signet only, and safe to retry: an invoice already settled is reported,
+    // never paid again. Simultaneous requests for one invoice share a single
+    // faucet payment instead of each spending faucet allowance.
+    pay(input) {
+      const key = String(input?.paymentHash || '').toLowerCase();
+      if (HEX64.test(key) && paying.has(key)) return paying.get(key);
+      const work = payOnce(input);
+      if (HEX64.test(key)) {
+        paying.set(key, work);
+        work.finally(() => paying.delete(key)).catch(() => {});
       }
-      throw new PracticeError('The faucet reported the payment, but the treasurer node has not confirmed it yet. Check again in a moment.', 504);
+      return work;
     }
   };
+
+  async function payOnce(input) {
+    const { record, status, expiresAt, network } = await ownedInvoice(input);
+    if (status.settled) return settledResult(record, status, network);
+    if (network !== 'signet') throw new PracticeError('Pay this invoice from your own Lightning wallet, then check again.', 400);
+    if (status.failed || Date.parse(expiresAt) <= now()) throw new PracticeError('This invoice has expired. Create a new contribution.', 409);
+    await faucetPay(record.paymentRequest);
+    const node = await receiver(network);
+    for (let attempt = 0; attempt < settleAttempts; attempt++) {
+      let current;
+      try { current = await node.checkPayment(record); } catch { current = { settled: false }; }
+      if (current.settled) return settledResult(record, current, network);
+      await sleep(settlePollMs);
+    }
+    throw new PracticeError('The faucet reported the payment, but the treasurer node has not confirmed it yet. Check again in a moment.', 504);
+  }
+  return service;
 }
 
 // Shared HTTP handler used by the Vercel functions and the local preview server.
-export function createPracticeHandler(service) {
+// Client addresses come from forwarding headers only on Vercel, which sets
+// them itself; anywhere else a client could forge them, so the socket address
+// is used.
+export function createPracticeHandler(service, { trustProxyHeaders = process.env.VERCEL === '1', now = () => Date.now() } = {}) {
   const hits = new Map();
-  // Per address, action and warm instance, over 10 minutes. Status is polled
-  // while a visitor pays from their own wallet, so it gets a larger budget.
-  const LIMITS = { invoice: 30, pay: 30, status: 240, qr: 120 };
+  const MINUTE = 60_000;
+  // [limit, window] rules per address, action and warm instance. Status is
+  // polled while a visitor pays from their own wallet, so it gets a larger
+  // budget. Each pay asks the shared Mutinynet faucet for coins, which allows
+  // this server roughly 30 payments a day, so one address gets enough to
+  // replay the four-round demo but cannot use up the day's coins for everyone.
+  const LIMITS = { invoice: [[30, 10 * MINUTE]], pay: [[8, 60 * MINUTE], [12, 24 * 60 * MINUTE]],
+    status: [[240, 10 * MINUTE]], qr: [[120, 10 * MINUTE]] };
   function limited(address, action) {
+    const rules = LIMITS[action] || [[30, 10 * MINUTE]];
+    const longest = Math.max(...rules.map(([, window]) => window));
     const key = `${action}:${address}`;
-    const nowMs = Date.now();
-    const recent = (hits.get(key) || []).filter(at => nowMs - at < 10 * 60_000);
+    const nowMs = now();
+    const recent = (hits.get(key) || []).filter(at => nowMs - at < longest);
+    if (rules.some(([limit, window]) => recent.filter(at => nowMs - at < window).length >= limit)) {
+      hits.set(key, recent);
+      return true;
+    }
     recent.push(nowMs); hits.set(key, recent);
     if (hits.size > 10_000) hits.clear();
-    return recent.length > (LIMITS[action] || 30);
+    return false;
   }
   async function readJson(req) {
     if (req.body && typeof req.body === 'object') return req.body;
@@ -251,7 +280,8 @@ export function createPracticeHandler(service) {
         if (!service.enabled) return send(res, 200, { available: false });
         return send(res, 200, await service.info());
       }
-      const address = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+      const forwarded = trustProxyHeaders ? String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '';
+      const address = forwarded || req.socket?.remoteAddress || 'unknown';
       if (action === 'qr') {
         if (req.method !== 'GET') return send(res, 405, { error: 'Use GET.' });
         if (limited(address, action)) return send(res, 429, { error: 'Too many requests.' });
