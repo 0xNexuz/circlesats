@@ -20,10 +20,19 @@
 | CircleSats receipt | "Confirmed 10/27/2026, 7:03:05 PM" (UTC+1) · Mutinynet Lightning · test coins · payer identity not verified |
 | Vercel logs | `invoice` 201 at 18:02:54Z and `pay` 200 `settled` at 18:03:05Z, hash prefix `987826bfb97a` |
 
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="evidence/2026-10-27-circlesats-receipt.png" alt="CircleSats receipt: round 1, 100 sats, Mutinynet Lightning, test coins, confirmed 10/27/2026 7:03:05 PM, with payment hash and preimage"><br><sub>CircleSats receipt on the live demo (UTC+1).</sub></td>
+    <td width="50%" valign="top"><img src="evidence/2026-10-27-alby-hub-received.png" alt="Alby Hub transactions: Received +100 sats, CircleSats practice contribution: Dakar Market Circle: round 1"><br><sub>The treasurer's Alby Hub received 100 sats (test coins; the dollar figure is Alby Hub's display conversion).</sub></td>
+  </tr>
+</table>
+
+Screenshots supplied by the operator on 27 October 2026; they show the same payment hash and preimage as the table above.
+
 ### How anyone can verify it
 
 1. Decode the invoice with any BOLT11 decoder: 100 sats, payee `024c3d20…62da`, payment hash `987826bf…7431`.
-2. Compute SHA-256 of the preimage bytes (`echo -n 30dfefeb…5438 | xxd -r -p | sha256sum`) and compare it with the payment hash. A preimage is revealed only when a Lightning payment completes.
+2. Compute SHA-256 of the preimage bytes and compare it with the payment hash, for example `python3 -c "import hashlib; print(hashlib.sha256(bytes.fromhex('30dfefeb03f9c9228ef104946cc6601e96a682200a9ca386ddb8d4da4c2e5438')).hexdigest())"`. A preimage is revealed only when a Lightning payment completes.
 3. Lightning payments have no per-payment on-chain transaction. Only the channel's funding and closing are on-chain; the funding transaction of the treasurer's channel with the faucet node can be looked up on mutinynet.com once its transaction ID is copied from Alby Hub.
 
 ## Earlier pre-payment checkpoint (superseded)
