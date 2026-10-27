@@ -487,6 +487,7 @@ function renderPayment() {
       panel.append(label, qr, invoice, actions);
       const hint = document.createElement('p'); hint.textContent = `Pay ${record.amountSats} sats from any Lightning wallet. This is a real Bitcoin payment to the circle’s demo treasurer wallet and is not refunded. CircleSats checks for it automatically. Invoice expires ${new Date(record.expiresAt).toLocaleTimeString()}.`;
       panel.append(hint);
+      panel.append(connectedWalletPay(record));
       watchMainnet(record.id);
       return;
     }
@@ -534,6 +535,51 @@ function renderPayment() {
   const actions = document.createElement('div'); actions.className = 'actions';
   const create = document.createElement('button'); create.className = 'action'; create.textContent = state.mode === 'demo' ? 'Create demo contribution' : `Create ${state.group.amountSats} sat invoice`;
   create.addEventListener('click', () => createInvoice(member.id, create)); actions.append(create); panel.append(explanation, actions);
+}
+
+// Pay a real-sats invoice from the visitor's own wallet over Nostr Wallet
+// Connect (NIP-47), inside this tab. The connection string stays in this tab's
+// memory; CircleSats never sends it anywhere. The treasurer wallet still has to
+// confirm the payment before the contribution counts.
+function connectedWalletPay(record) {
+  const box = element('div', 'nwc-pay');
+  box.append(element('p', 'wallet-hint', nwc
+    ? `Wallet connected over Nostr Wallet Connect${nwcNetwork ? ` (${nwcNetwork})` : ''}. Payment permission and budget are controlled in your wallet.`
+    : 'Or connect your wallet with Nostr Wallet Connect and pay here. Your connection string stays in this browser tab.'));
+  const payConnected = async () => {
+    const payment = await nwc.payInvoice({ invoice: record.paymentRequest });
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try { await mutate('/api/wallet/pay-demo'); await refresh(true); toast('Paid from your connected wallet and confirmed by the treasurer wallet.'); return; }
+      catch { await new Promise(resolve => setTimeout(resolve, 1500)); }
+    }
+    await refresh(true);
+    toast(payment?.preimage ? 'Payment sent. Waiting for the treasurer wallet to confirm it.' : 'Payment submitted. Waiting for the treasurer wallet to confirm it.');
+  };
+  if (nwc) {
+    const controls = element('div', 'actions');
+    controls.append(action('Pay with connected wallet', payConnected, false, 'Paying…'),
+      action('Disconnect wallet', () => { nwc.close(); nwc = null; nwcNetwork = null; renderPayment(); toast('Wallet disconnected from this tab.'); }, true));
+    box.append(controls);
+    return box;
+  }
+  const form = element('form', 'login-form');
+  const uri = element('input'); uri.type = 'password'; uri.placeholder = 'nostr+walletconnect://…'; uri.setAttribute('aria-label', 'Nostr Wallet Connect connection string');
+  uri.autocomplete = 'off'; uri.autocapitalize = 'off'; uri.spellcheck = false; uri.required = true;
+  const submit = element('button', 'action secondary', 'Connect wallet & pay'); submit.type = 'submit';
+  form.append(uri, submit);
+  form.addEventListener('submit', async event => {
+    event.preventDefault(); submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Connecting…';
+    try {
+      const { connectNwc } = await import('/nwc.bundle.js');
+      const result = await connectNwc(uri.value.trim());
+      if (result.network && result.network !== 'mainnet') { result.client.close(); throw new Error(`This wallet is on ${result.network}. Real-sat invoices need a mainnet Lightning wallet.`); }
+      nwc?.close(); nwc = result.client; nwcNetwork = result.network || 'mainnet'; uri.value = '';
+      toast(`${result.alias} connected. Paying…`); submit.textContent = 'Paying…';
+      await payConnected();
+    } catch (error) { toast(error.message || 'The wallet could not pay this invoice.'); renderPayment(); }
+  });
+  box.append(form);
+  return box;
 }
 
 // While a real-sats invoice is on screen, ask every 5 seconds whether the

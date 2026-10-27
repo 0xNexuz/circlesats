@@ -27,6 +27,17 @@ Every visitor gets a separate circle and separate invoices, so judges never see 
 - The `/api/practice` functions pay only pending, unexpired 100-sat invoices that the treasurer node itself issued, so they cannot be used to send faucet coins anywhere else. They hold no spending key.
 - Test locally before deploying: with your private `.env.mutinynet` in place, run `npm run build:vercel` then `npm run preview:vercel` and open http://127.0.0.1:3200. The local preview loads the same receiver connection and calls the faucet from your own internet address.
 
+### How CircleSats meets the hackathon requirements
+
+| Requirement | Where to see it |
+| --- | --- |
+| Bitcoin / Lightning solution for a local need | Rotating savings circles (*tontines*, *natt*) on Lightning; seeded Dakar Market Circle; [presentation](docs/PRESENTATION.md) |
+| Nostr | Nostr Wallet Connect (NIP-47): the treasurer node receives over NWC, and judges can connect their own wallet over NWC and pay in the demo |
+| At least a Bitcoin/Lightning wallet implementation | Lightning invoices (receive), in-app NWC payment (send), practice wallets with balances; [first verified payment](docs/LIGHTNING_PAYMENT_EVIDENCE.md) |
+| Presentation (text or video) | [docs/PRESENTATION.md](docs/PRESENTATION.md) |
+| Prototype / MVP | [circlesats-two.vercel.app](https://circlesats-two.vercel.app/) (no sign-up) and the Node app below |
+| AI | Not used; the brief's examples show Bitcoin-only solutions also qualify |
+
 The app is for organizers and members who need a visible contribution record and a predictable rotation. It is not an escrow, a bank, or an automated payout service.
 
 ## Try the full cycle
