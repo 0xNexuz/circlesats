@@ -22,6 +22,13 @@ if (browserStore.includes("from 'node:") || browserStore.includes('writeLedger('
 }
 await writeFile(join(output, 'store-browser.js'), browserStore);
 await cp('src/browser-demo.js', join(output, 'browser-demo.js'));
+// Per-visitor Alby sandbox wallets run in the visitor's tab; these modules have
+// no Node-only imports and carry no secrets.
+for (const file of ['sandbox-lightning.js', 'guest-sandbox.js', 'practice-client.js']) {
+  const source = await readFile(join('src', file), 'utf8');
+  if (/from ['"]node:|require\(/.test(source)) throw new Error(`${file} must stay browser-compatible.`);
+  await writeFile(join(output, file), source);
+}
 
 const index = await readFile(join(output, 'index.html'), 'utf8');
 const tagged = index

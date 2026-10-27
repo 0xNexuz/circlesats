@@ -7,6 +7,8 @@ import { createStore } from './store.js';
 import { createAuth } from './auth.js';
 import { assertLedgerEnvironment, resolveRuntimeConfig } from './runtime-config.js';
 import { acquireInstanceLock } from './instance-lock.js';
+import { NWCClient } from '@getalby/sdk';
+import { createSandboxProvisioner } from './sandbox-lightning.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const config = resolveRuntimeConfig(process.env, root);
@@ -31,12 +33,16 @@ try {
         process.env.SANDBOX_PAYER_WALLET_PUBKEY === lightning.walletPubkey)) {
     throw new Error('Set a distinct SANDBOX_PAYER_WALLET_PUBKEY for sandbox payments.');
   }
+  // Guest demos get private Alby sandbox wallets (test sats) unless disabled.
+  const openGuestSandbox = process.env.GUEST_LIGHTNING_SANDBOX === '0' ? null
+    : createSandboxProvisioner({ NWCClient });
   const app = createApp({ store, lightning, auth, publicDir: resolve(root, 'public'),
     paymentEnvironment: process.env.PAYMENT_ENVIRONMENT || (lightning ? 'unspecified' : 'simulated'),
-    sandboxPayerWalletPubkey: process.env.SANDBOX_PAYER_WALLET_PUBKEY || null, trustProxy: config.production });
+    sandboxPayerWalletPubkey: process.env.SANDBOX_PAYER_WALLET_PUBKEY || null, trustProxy: config.production, openGuestSandbox });
   app.listen(config.port, config.host, () => {
     console.log(`CircleSats listening on ${config.host}:${config.port}`);
     console.log(lightning ? `${provider.toUpperCase()} ${process.env.PAYMENT_ENVIRONMENT} receiver configured: invoices enabled.` : 'Lightning receiver not configured: simulated demo wallet enabled.');
+    console.log(openGuestSandbox ? 'Guest demos use private Alby sandbox wallets (test sats), falling back to simulation if unreachable.' : 'Guest sandbox wallets disabled: guest demos are simulated.');
   });
   async function shutdown() {
     app.close(async () => {

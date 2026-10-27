@@ -22,6 +22,10 @@ Keep values in the host's secret manager or a private `.env` outside Git. `.env.
 | `NWC_RECEIVER_CONNECTION_SECRET` | omit | required | omit | Receive-only NWC URI, without `pay_invoice` |
 | `LNBITS_URL` / `LNBITS_INVOICE_KEY` | omit | omit | required | HTTPS endpoint and invoice/read key, never admin key |
 
+`GUEST_LIGHTNING_SANDBOX` (all columns: omit, or `0` to disable) controls guest-demo wallets. By default each guest demo opens its own Alby Developer Sandbox wallet pair from `faucet.nwc.dev` (test sats; at most 50 open at once, closed when the session ends) and falls back to simulation if the faucet or relay is unreachable within 25 seconds. The host therefore needs outbound HTTPS to `faucet.nwc.dev` and WSS to its relay; these wallets never touch the shared ledger or the real receiver.
+
+**Vercel (public demo):** besides the static site, Vercel runs `api/practice/{info,invoice,pay,status}.js`. Set `NWC_RECEIVER_CONNECTION_SECRET` (treasurer's receive-only Mutinynet NWC), `PAYMENT_ENVIRONMENT=signet` and `LNBITS_NETWORK=signet` in the Vercel project's environment variables; `PRACTICE_LIGHTNING=0` disables real practice payments. Without them, the demo uses the Alby sandbox or simulation. The treasurer node must stay online with incoming capacity during judging.
+
 Leave `DATA_FILE` and `AUTH_FILE` unset in production. Leave `ALLOW_SANDBOX_RECEIVER_SPEND_PERMISSION` and `SANDBOX_PAYER_WALLET_PUBKEY` unset for signet. The Alby fake-sat sandbox uses `PAYMENT_ENVIRONMENT=alby-sandbox`, `LIGHTNING_PROVIDER=nwc`, `LNBITS_NETWORK=mainnet` (its API label), `SANDBOX_PAYER_WALLET_PUBKEY`, and a sandbox-only permission opt-in. Never mix its credentials with signet or real mainnet. CircleSats rejects `PAYMENT_ENVIRONMENT=mainnet`.
 
 `NODE_OPTIONS=--use-system-ca` is optional when the operating system trust store is needed. Keep TLS validation enabled. The standard launcher strips an inherited `NODE_TLS_REJECT_UNAUTHORIZED=0`; direct server startup refuses it.

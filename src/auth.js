@@ -24,6 +24,16 @@ export async function createAuth(file, { announce = console.log, requireExisting
   }
   const sessions = new Map();
   const failures = new Map();
+  // Ending a session also closes a guest's private sandbox wallet connections.
+  function drop(token) {
+    const session = sessions.get(token);
+    sessions.delete(token);
+    try { session?.sandbox?.close(); } catch { /* already closed */ }
+  }
+  const sweep = setInterval(() => {
+    for (const [token, current] of sessions) if (current.expires < Date.now()) drop(token);
+  }, 10 * 60_000);
+  sweep.unref?.();
   function issue(memberId, kind, address = '') {
     const session = { memberId, kind, address, csrf: randomBytes(24).toString('base64url'), expires: Date.now() + 12 * 60 * 60_000 };
     if (kind === 'guest-demo') session.demoStore = createDemoStore();
@@ -49,7 +59,7 @@ export async function createAuth(file, { announce = console.log, requireExisting
       return issue(memberId, 'member', address);
     },
     startDemo(address = '') {
-      for (const [token, current] of sessions) if (current.expires < Date.now()) sessions.delete(token);
+      for (const [token, current] of sessions) if (current.expires < Date.now()) drop(token);
       if ([...sessions.values()].filter(current => current.kind === 'guest-demo').length >= 200) return null;
       if ([...sessions.values()].filter(current => current.kind === 'guest-demo' && current.address === address).length >= 5) return null;
       return issue('awa', 'guest-demo', address);
@@ -57,9 +67,9 @@ export async function createAuth(file, { announce = console.log, requireExisting
     get(token) {
       const session = sessions.get(token);
       if (!session) return null;
-      if (session.expires < Date.now()) { sessions.delete(token); return null; }
+      if (session.expires < Date.now()) { drop(token); return null; }
       return session;
     },
-    logout(token) { sessions.delete(token); }
+    logout(token) { drop(token); }
   };
 }
